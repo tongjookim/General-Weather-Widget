@@ -1,0 +1,737 @@
+/* SW KMA 지상관측 날씨 페이지 — 테마(ailab) 색상 토큰이 있으면 그대로 따라간다. */
+
+.sw-kma {
+	--kma-bg: var(--alb-bg, #ffffff);
+	--kma-surface: var(--alb-surface, #f7f7fa);
+	--kma-ink: var(--alb-ink, #17152b);
+	--kma-text: var(--alb-text, #3b3952);
+	--kma-muted: var(--alb-muted, #6b6984);
+	--kma-line: var(--alb-line, #e6e4ef);
+	--kma-accent: var(--alb-accent, #5645cf);
+	--kma-hot: #e8590c;
+	--kma-cold: #1c7ed6;
+	--kma-rain: #4dabf7;
+	--kma-err-bg: var(--alb-err-bg, #fdecef);
+	--kma-err: var(--alb-err, #b4233f);
+
+	max-width: 1100px;
+	margin: 0 auto 3rem;
+	color: var(--kma-text);
+	font-size: 15px;
+	line-height: 1.5;
+	word-break: keep-all;
+}
+
+html.dark .sw-kma {
+	--kma-hot: #ff922b;
+	--kma-cold: #74c0fc;
+}
+
+.sw-kma *,
+.sw-kma *::before,
+.sw-kma *::after {
+	box-sizing: border-box;
+}
+
+.sw-kma h2,
+.sw-kma h3 {
+	margin: 0;
+	color: var(--kma-ink);
+	letter-spacing: -.02em;
+}
+
+/* 헤더 */
+.sw-kma__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 12px 24px;
+	margin-bottom: 20px;
+	scroll-margin-top: 90px;
+}
+
+.sw-kma__title {
+	font-size: 28px;
+	font-weight: 800;
+}
+
+.sw-kma__sub {
+	margin: 4px 0 0;
+	color: var(--kma-muted);
+	font-size: 13px;
+}
+
+.sw-kma__picker select {
+	min-width: 180px;
+	height: 42px;
+	padding: 0 36px 0 14px;
+	border: 1px solid var(--kma-line);
+	border-radius: 10px;
+	background: var(--kma-bg);
+	color: var(--kma-ink);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+/* 카드 공통 */
+.sw-kma__now,
+.sw-kma__card {
+	margin-bottom: 20px;
+	padding: 22px 24px;
+	border: 1px solid var(--kma-line);
+	border-radius: 16px;
+	background: var(--kma-bg);
+}
+
+.sw-kma__card-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 6px 16px;
+	margin-bottom: 14px;
+}
+
+.sw-kma__card-head h3 {
+	font-size: 18px;
+	font-weight: 800;
+}
+
+.sw-kma__muted {
+	color: var(--kma-muted);
+	font-size: 13px;
+}
+
+/* ① 현재 날씨 */
+.sw-kma__now {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+	gap: 20px 32px;
+	background: linear-gradient(135deg, var(--kma-surface) 0%, var(--kma-bg) 70%);
+}
+
+.sw-kma__now-main {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+}
+
+.sw-kma__now-icon {
+	flex-shrink: 0;
+}
+
+.sw-kma__now-temp {
+	color: var(--kma-ink);
+	font-size: 56px;
+	font-weight: 800;
+	line-height: 1;
+	letter-spacing: -.04em;
+	font-variant-numeric: tabular-nums;
+}
+
+.sw-kma__now-temp span {
+	margin-left: 2px;
+	font-size: 24px;
+	font-weight: 600;
+	vertical-align: top;
+}
+
+.sw-kma__now-desc {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 10px;
+	margin-top: 8px;
+}
+
+.sw-kma__now-desc strong {
+	color: var(--kma-ink);
+	font-size: 17px;
+}
+
+.sw-kma__delta {
+	color: var(--kma-muted);
+	font-size: 13px;
+}
+
+.sw-kma__delta.is-up,
+.sw-kma__normal-diff.is-up {
+	color: var(--kma-hot);
+}
+
+.sw-kma__delta.is-down,
+.sw-kma__normal-diff.is-down {
+	color: var(--kma-cold);
+}
+
+.sw-kma__now-range {
+	margin-top: 6px;
+	font-size: 14px;
+}
+
+.sw-kma__now-range b {
+	font-variant-numeric: tabular-nums;
+}
+
+.t-max {
+	color: var(--kma-hot);
+}
+
+.t-min {
+	color: var(--kma-cold);
+}
+
+.sw-kma__now-time {
+	margin-top: 4px;
+	color: var(--kma-muted);
+	font-size: 12px;
+}
+
+.sw-kma__stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+	gap: 10px;
+	margin: 0;
+	align-content: center;
+}
+
+.sw-kma__stats > div {
+	padding: 10px 12px;
+	border-radius: 10px;
+	background: var(--kma-surface);
+}
+
+.sw-kma__stats dt {
+	color: var(--kma-muted);
+	font-size: 12px;
+}
+
+.sw-kma__stats dd {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin: 2px 0 0;
+	color: var(--kma-ink);
+	font-size: 16px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.sw-kma__arrow {
+	width: 16px;
+	height: 16px;
+	color: var(--kma-accent);
+}
+
+.sw-kma__normal {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 12px;
+	padding-top: 14px;
+	border-top: 1px dashed var(--kma-line);
+	font-size: 14px;
+}
+
+.sw-kma__normal-label {
+	color: var(--kma-muted);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.sw-kma__normal-diff {
+	margin-left: auto;
+	font-weight: 700;
+}
+
+/* ② 24시간 그래프 */
+.sw-kma__legend {
+	display: flex;
+	gap: 14px;
+	color: var(--kma-muted);
+	font-size: 12px;
+}
+
+.sw-kma__legend span::before {
+	content: "";
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	margin-right: 5px;
+	border-radius: 2px;
+	vertical-align: -1px;
+}
+
+.lg-temp::before {
+	background: var(--kma-hot);
+}
+
+.lg-rain::before {
+	background: var(--kma-rain);
+}
+
+.sw-kma__chart-wrap {
+	overflow-x: auto;
+	/* RTL 스크롤 컨테이너는 오른쪽 끝(최신 시각)에서 시작한다. 내용은 다시 LTR. */
+	direction: rtl;
+}
+
+.sw-kma__chart-wrap > svg {
+	direction: ltr;
+}
+
+.sw-kma__chart {
+	display: block;
+	width: 100%;
+	min-width: 560px;
+	height: auto;
+	font-family: inherit;
+}
+
+.sw-kma__chart .grid {
+	stroke: var(--kma-line);
+	stroke-width: 1;
+}
+
+.sw-kma__chart .axis {
+	fill: var(--kma-muted);
+	font-size: 11px;
+}
+
+.sw-kma__chart .temp {
+	color: var(--kma-hot);
+}
+
+.sw-kma__chart .area-stop {
+	stop-color: var(--kma-hot);
+}
+
+.sw-kma__chart .line {
+	fill: none;
+	stroke: var(--kma-hot);
+	stroke-width: 2.5;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+}
+
+.sw-kma__chart .dot {
+	fill: var(--kma-bg);
+	stroke: var(--kma-hot);
+	stroke-width: 2;
+}
+
+.sw-kma__chart .dot.is-now {
+	fill: var(--kma-hot);
+}
+
+.sw-kma__chart .val {
+	fill: var(--kma-ink);
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.sw-kma__chart .rain {
+	fill: var(--kma-rain);
+	opacity: .75;
+}
+
+/* ③ 최근 7일 */
+.sw-kma__days {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.sw-kma__day {
+	display: grid;
+	grid-template-columns: 74px 48px minmax(80px, 1fr) 48px 70px minmax(0, 1.3fr);
+	align-items: center;
+	gap: 12px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--kma-line);
+	font-variant-numeric: tabular-nums;
+}
+
+.sw-kma__day:last-child {
+	border-bottom: 0;
+}
+
+.sw-kma__day-date {
+	color: var(--kma-muted);
+	font-size: 13px;
+}
+
+.sw-kma__day-date b {
+	color: var(--kma-ink);
+	font-size: 15px;
+}
+
+.sw-kma__day-min {
+	color: var(--kma-cold);
+	font-weight: 700;
+	text-align: right;
+}
+
+.sw-kma__day-max {
+	color: var(--kma-hot);
+	font-weight: 700;
+}
+
+.sw-kma__day-bar {
+	position: relative;
+	height: 6px;
+	border-radius: 3px;
+	background: var(--kma-surface);
+}
+
+.sw-kma__day-bar i {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	border-radius: 3px;
+	background: linear-gradient(90deg, var(--kma-cold), var(--kma-hot));
+}
+
+.sw-kma__day-rain {
+	color: var(--kma-muted);
+	font-size: 13px;
+	text-align: right;
+}
+
+.sw-kma__day-rain.has-rain {
+	color: var(--kma-rain);
+	font-weight: 700;
+}
+
+.sw-kma__day-extra {
+	color: var(--kma-muted);
+	font-size: 12px;
+}
+
+/* ④ 해와 달 */
+.sw-kma__astro-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+}
+
+.sw-kma__astro-panel {
+	display: flex;
+	flex-direction: column;
+	padding: 18px;
+	border-radius: 12px;
+}
+
+.sw-kma__astro-panel.is-sun {
+	--astro-key: var(--kma-hot);
+	background: linear-gradient(180deg, color-mix(in srgb, #f59e0b 12%, var(--kma-bg)) 0%, var(--kma-surface) 100%);
+}
+
+.sw-kma__astro-panel.is-moon {
+	--astro-key: var(--kma-accent);
+	background: linear-gradient(180deg, color-mix(in srgb, #6366f1 12%, var(--kma-bg)) 0%, var(--kma-surface) 100%);
+}
+
+.sw-kma__astro-visual {
+	min-height: 120px;
+	text-align: center;
+}
+
+.sw-kma__sunarc {
+	display: block;
+	width: 100%;
+	max-width: 240px;
+	height: auto;
+	margin: 0 auto;
+	overflow: visible;
+}
+
+.sw-kma__sunarc .track {
+	fill: none;
+	stroke: var(--kma-line);
+	stroke-width: 2;
+	stroke-dasharray: 4 4;
+}
+
+.sw-kma__sunarc .done {
+	fill: none;
+	stroke: #f59e0b;
+	stroke-width: 3;
+	stroke-linecap: round;
+}
+
+.sw-kma__sunarc .sun {
+	fill: #f59e0b;
+	filter: drop-shadow(0 0 5px rgba(245, 158, 11, .6));
+}
+
+.sw-kma__sunarc .horizon {
+	stroke: var(--kma-line);
+}
+
+.sw-kma__astro-status {
+	margin: 6px 0 0;
+	color: var(--kma-muted);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.sw-kma__astro-moon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 18px;
+}
+
+.sw-kma__astro-moon .sw-ksasi__moon-svg {
+	width: 104px;
+	height: 104px;
+}
+
+.sw-kma__astro-moon > div {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	text-align: left;
+}
+
+.sw-kma__astro-moon strong {
+	color: var(--kma-ink);
+	font-size: 20px;
+}
+
+.sw-kma__astro-moon span {
+	color: var(--kma-muted);
+	font-size: 13px;
+}
+
+.sw-kma__astro-times {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	margin: 14px 0 0;
+	text-align: center;
+}
+
+.sw-kma__astro-times dt {
+	color: var(--kma-muted);
+	font-size: 12px;
+}
+
+.sw-kma__astro-times dd {
+	margin: 2px 0 0;
+	color: var(--kma-ink);
+	font-size: 16px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.sw-kma__astro-times .is-key dd {
+	color: var(--astro-key);
+	font-size: 24px;
+	font-weight: 800;
+	letter-spacing: -.02em;
+}
+
+.sw-kma__astro-foot {
+	margin: 12px 0 0;
+	color: var(--kma-muted);
+	font-size: 12px;
+	text-align: center;
+}
+
+.sw-kma__astro-foot b {
+	color: var(--kma-text);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ⑤ 전국 표 */
+.sw-kma__table-wrap {
+	max-height: 560px;
+	overflow: auto;
+	border: 1px solid var(--kma-line);
+	border-radius: 10px;
+}
+
+.sw-kma__table {
+	width: 100%;
+	margin: 0;
+	border-collapse: collapse;
+	font-size: 14px;
+	font-variant-numeric: tabular-nums;
+}
+
+.sw-kma__table th,
+.sw-kma__table td {
+	padding: 8px 12px;
+	border: 0;
+	border-bottom: 1px solid var(--kma-line);
+	background: transparent;
+	color: var(--kma-text);
+	text-align: left;
+	white-space: nowrap;
+}
+
+.sw-kma__table thead th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: var(--kma-surface);
+	color: var(--kma-muted);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.sw-kma__table th[data-sort] {
+	cursor: pointer;
+	user-select: none;
+}
+
+.sw-kma__table th[data-sort]::after {
+	content: "↕";
+	margin-left: 4px;
+	opacity: .35;
+}
+
+.sw-kma__table th[aria-sort="ascending"]::after {
+	content: "↑";
+	opacity: 1;
+}
+
+.sw-kma__table th[aria-sort="descending"]::after {
+	content: "↓";
+	opacity: 1;
+}
+
+.sw-kma__table .num {
+	text-align: right;
+}
+
+.sw-kma__table td.t {
+	color: var(--kma-ink);
+	font-weight: 700;
+}
+
+.sw-kma__table td.wx {
+	color: var(--kma-muted);
+	font-size: 13px;
+}
+
+.sw-kma__table .wx-in {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	vertical-align: middle;
+}
+
+.sw-kma__table a {
+	color: var(--kma-ink);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.sw-kma__table a:hover {
+	color: var(--kma-accent);
+	text-decoration: underline;
+}
+
+.sw-kma__table tr.is-current td {
+	background: color-mix(in srgb, var(--kma-accent) 10%, transparent);
+}
+
+.sw-kma__table tbody tr:hover td {
+	background: var(--kma-surface);
+}
+
+/* 기타 */
+.sw-kma__error {
+	margin-bottom: 20px;
+	padding: 14px 16px;
+	border-radius: 10px;
+	background: var(--kma-err-bg);
+	color: var(--kma-err);
+}
+
+.sw-kma__credit {
+	color: var(--kma-muted);
+	font-size: 12px;
+}
+
+.sw-kma-icon {
+	display: block;
+	flex-shrink: 0;
+}
+
+/* 반응형 */
+@media (max-width: 860px) {
+	.sw-kma__now {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.sw-kma__day {
+		grid-template-columns: 64px 44px minmax(60px, 1fr) 44px 62px;
+	}
+
+	.sw-kma__day-extra {
+		display: none;
+	}
+}
+
+@media (max-width: 640px) {
+	.sw-kma__astro-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+@media (max-width: 520px) {
+	.sw-kma__now,
+	.sw-kma__card {
+		padding: 18px 16px;
+	}
+
+	.sw-kma__title {
+		font-size: 22px;
+	}
+
+	.sw-kma__picker,
+	.sw-kma__picker select {
+		width: 100%;
+	}
+
+	.sw-kma__now-temp {
+		font-size: 46px;
+	}
+
+	.sw-kma__now-icon .sw-kma-icon {
+		width: 56px;
+		height: 56px;
+	}
+
+	.sw-kma__normal-diff {
+		margin-left: 0;
+	}
+
+	.sw-kma__day {
+		grid-template-columns: 56px 40px minmax(40px, 1fr) 40px 54px;
+		gap: 8px;
+	}
+
+	.sw-kma__table .wx-label {
+		display: none;
+	}
+
+	.sw-kma__stats {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 8px;
+	}
+
+	.sw-kma__stats > div {
+		padding: 8px 10px;
+	}
+
+	.sw-kma__stats dd {
+		font-size: 14px;
+	}
+}
