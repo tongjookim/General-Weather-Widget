@@ -664,6 +664,231 @@ html.dark .sw-kma {
 	flex-shrink: 0;
 }
 
+/* 대기질 (에어코리아) — 등급색: 좋음 파랑, 보통 초록, 나쁨 주황, 매우나쁨 빨강 */
+.sw-kma__air {
+	--air-0: var(--kma-muted);
+	--air-1: #1c7ed6;
+	--air-2: #2b8a3e;
+	--air-3: #e8590c;
+	--air-4: #e03131;
+}
+
+html.dark .sw-kma__air {
+	--air-1: #74c0fc;
+	--air-2: #69db7c;
+	--air-3: #ffa94d;
+	--air-4: #ff8787;
+}
+
+.sw-kma__air .g0 { --air: var(--air-0); }
+.sw-kma__air .g1 { --air: var(--air-1); }
+.sw-kma__air .g2 { --air: var(--air-2); }
+.sw-kma__air .g3 { --air: var(--air-3); }
+.sw-kma__air .g4 { --air: var(--air-4); }
+
+.sw-kma__air-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+	gap: 16px;
+}
+
+.sw-kma__air-summary {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+	padding: 18px;
+	border-radius: 12px;
+	background: color-mix(in srgb, var(--air) 12%, var(--kma-bg));
+}
+
+.sw-kma__air-face {
+	display: grid;
+	flex-shrink: 0;
+	place-items: center;
+	width: 92px;
+	height: 92px;
+	border-radius: 50%;
+	background: var(--air);
+	color: #fff;
+	font-size: 20px;
+	font-weight: 800;
+	letter-spacing: -.04em;
+}
+
+html.dark .sw-kma__air-face {
+	color: #111;
+}
+
+.sw-kma__air-summary p {
+	margin: 0;
+}
+
+.sw-kma__air-label {
+	color: var(--kma-ink);
+	font-size: 14px;
+}
+
+.sw-kma__air-label b {
+	color: var(--air);
+	font-size: 18px;
+}
+
+.sw-kma__air-tip {
+	margin-top: 6px !important;
+	font-size: 14px;
+}
+
+.sw-kma__air-pm {
+	display: grid;
+	gap: 10px;
+}
+
+.sw-kma__air-pmrow {
+	padding: 12px 16px 14px;
+	border-radius: 12px;
+	background: var(--kma-surface);
+}
+
+.sw-kma__air-pmhead {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	color: var(--kma-ink);
+	font-weight: 700;
+}
+
+.sw-kma__air-pmhead small {
+	color: var(--kma-muted);
+	font-weight: 500;
+}
+
+.sw-kma__air-badge {
+	display: inline-block;
+	padding: 1px 9px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--air) 16%, transparent);
+	color: var(--air);
+	font-size: 12px;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.sw-kma__air-value {
+	margin: 2px 0 8px;
+	font-size: 13px;
+}
+
+.sw-kma__air-value b {
+	color: var(--air);
+	font-size: 24px;
+	font-weight: 800;
+	letter-spacing: -.03em;
+}
+
+.sw-kma__air-gauge {
+	position: relative;
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 2px;
+	height: 6px;
+}
+
+.sw-kma__air-gauge i {
+	border-radius: 3px;
+	opacity: .35;
+}
+
+.sw-kma__air-gauge i:nth-child(1) { background: var(--air-1); }
+.sw-kma__air-gauge i:nth-child(2) { background: var(--air-2); }
+.sw-kma__air-gauge i:nth-child(3) { background: var(--air-3); }
+.sw-kma__air-gauge i:nth-child(4) { background: var(--air-4); }
+
+.sw-kma__air-gauge b {
+	position: absolute;
+	top: 50%;
+	width: 14px;
+	height: 14px;
+	border: 3px solid var(--kma-bg);
+	border-radius: 50%;
+	background: var(--air);
+	box-shadow: 0 0 0 1px var(--air);
+	transform: translate(-50%, -50%);
+}
+
+.sw-kma__air-gases {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 10px;
+	margin: 12px 0 0;
+}
+
+.sw-kma__air-gases > div {
+	padding: 10px 12px;
+	border-radius: 10px;
+	background: var(--kma-surface);
+}
+
+.sw-kma__air-gases dt {
+	color: var(--kma-muted);
+	font-size: 12px;
+}
+
+.sw-kma__air-gases dd {
+	margin: 2px 0 0;
+	font-size: 12px;
+}
+
+.sw-kma__air-gases dd b {
+	color: var(--kma-ink);
+	font-size: 15px;
+}
+
+.sw-kma__air-fc {
+	margin-top: 16px;
+	padding-top: 14px;
+	border-top: 1px solid var(--kma-line);
+}
+
+.sw-kma__air-fc h4 {
+	margin: 0 0 10px;
+	color: var(--kma-ink);
+	font-size: 15px;
+	font-weight: 800;
+}
+
+.sw-kma__air-fc h4 .sw-kma__muted {
+	margin-left: 6px;
+	font-weight: 500;
+}
+
+.sw-kma__air-fcdays {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 10px;
+}
+
+.sw-kma__air-fcday {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 12px;
+	padding: 10px 14px;
+	border-radius: 10px;
+	background: var(--kma-surface);
+	font-size: 13px;
+}
+
+.sw-kma__air-fcday strong {
+	flex-basis: 100%;
+	color: var(--kma-ink);
+}
+
+.sw-kma__air-overall {
+	margin: 10px 0 0;
+	font-size: 13px;
+}
+
 /* 반응형 */
 @media (max-width: 860px) {
 	.sw-kma__now {
@@ -682,6 +907,14 @@ html.dark .sw-kma {
 @media (max-width: 640px) {
 	.sw-kma__astro-grid {
 		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.sw-kma__air-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.sw-kma__air-gases {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 

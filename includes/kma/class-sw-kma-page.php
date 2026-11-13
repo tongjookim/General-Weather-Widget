@@ -2,7 +2,7 @@
 /**
  * [sw_kma_weather] — 기상청 지상관측 날씨 페이지
  *
- * 구성: ① 현재 날씨 + 평년 비교 ② 최근 24시간 그래프 ③ 최근 7일 ④ 전국 관측 현황
+ * 구성: 현재 날씨 + 평년 비교, 최근 24시간 그래프, 대기질, 최근 7일, 해와 달, 전국 관측 현황
  * 지점 변경은 ?kma_stn=번호 (GET) 로 처리해 JS 없이도 동작한다.
  */
 
@@ -84,11 +84,12 @@ class SW_KMA_Page {
 
 		self::render_current( $stn, $hourly );
 		self::render_chart( $hourly );
+		self::render_air( $stn );
 		self::render_daily( $stn );
 		self::render_astro( $stn );
 		self::render_nation( $stn );
 
-		echo '<p class="sw-kma__credit">자료: 기상청 API허브 지상관측(ASOS), 한국천문연구원 출몰시각·월령 정보, 달 이미지 NASA SVS. 관측값은 품질검사 전 자료로 실제와 다를 수 있습니다.</p>';
+		echo '<p class="sw-kma__credit">자료: 기상청 API허브 지상관측(ASOS), 환경부·한국환경공단 에어코리아, 한국천문연구원 출몰시각·월령 정보, 달 이미지 NASA SVS. 관측값과 대기질 측정값은 품질검사 전 자료로 실제와 다를 수 있습니다.</p>';
 		echo '</div>';
 		return ob_get_clean();
 	}
@@ -366,6 +367,151 @@ class SW_KMA_Page {
 					<?php endforeach; ?>
 				</svg>
 			</div>
+		</section>
+		<?php
+	}
+
+	/* ── 대기질 (에어코리아) ─────────────────────────────── */
+
+	private static function render_air( $stn ) {
+		$region = SW_KMA_Data::air_region( $stn );
+		if ( ! $region ) {
+			return;
+		}
+		$coords = SW_KMA_API::station_coords();
+		$lat    = isset( $coords[ $stn ] ) ? $coords[ $stn ]['lat'] : null;
+		$lon    = isset( $coords[ $stn ] ) ? $coords[ $stn ]['lon'] : null;
+		$air    = SW_Air_API::for_location( $lat, $lon, $region['sido'] );
+		if ( is_wp_error( $air ) ) {
+			if ( current_user_can( 'manage_options' ) ) {
+				self::render_error( $air );
+			}
+			return;
+		}
+		$fc = SW_Air_API::forecast();
+
+		$grades = SW_Air_API::GRADES;
+		$main   = $air['khai_grade'] ? $air['khai_grade'] : SW_Air_API::grade( 'khai', $air['khai'] );
+		$pm10_g = SW_Air_API::grade( 'pm10', $air['pm10'] );
+		$pm25_g = SW_Air_API::grade( 'pm25', $air['pm25'] );
+		if ( ! $main ) {
+			$main = max( (int) $pm10_g, (int) $pm25_g ) ? max( (int) $pm10_g, (int) $pm25_g ) : null;
+		}
+		$time = strlen( $air['time'] ) >= 16 ? substr( $air['time'], 11, 5 ) : $air['time'];
+		if ( 'nearest' === $air['mode'] ) {
+			$basis = sprintf( '%s 측정소(관측지점에서 %.1fkm) · %s 기준', $air['label'], $air['dist'], $time );
+		} else {
+			$basis = sprintf( '%s 도시대기 측정소 %d곳 평균 · %s 기준', $air['label'], $air['count'], $time );
+		}
+		$tips = array(
+			1 => '대기 상태가 좋습니다. 야외 활동하기 좋아요.',
+			2 => '보통 수준입니다. 민감군은 장시간 무리한 실외 활동을 줄이세요.',
+			3 => '공기가 나쁩니다. 장시간 실외 활동을 줄이고 외출 시 마스크를 쓰세요.',
+			4 => '공기가 매우 나쁩니다. 실외 활동을 피하고 창문을 닫아 두세요.',
+		);
+
+		// 오염물질 막대 위치: 등급 구간(4칸) 안에서의 상대 위치
+		$gauge = function ( $item, $v ) {
+			if ( null === $v ) {
+				return null;
+			}
+			$b  = SW_Air_API::ITEMS[ $item ][3];
+			$lo = 0;
+			foreach ( array( $b[0], $b[1], $b[2], $b[2] * 2 ) as $i => $hi ) {
+				if ( $v <= $hi || 3 === $i ) {
+					return min( 100, ( $i + min( 1, ( $v - $lo ) / ( $hi - $lo ) ) ) / 4 * 100 );
+				}
+				$lo = $hi;
+			}
+			return 100;
+		};
+		$val = function ( $item, $v ) {
+			return null === $v ? '-' : number_format( (float) $v, SW_Air_API::ITEMS[ $item ][2] );
+		};
+		?>
+		<section class="sw-kma__card sw-kma__air" aria-labelledby="sw-kma-air-title">
+			<div class="sw-kma__card-head">
+				<h3 id="sw-kma-air-title">대기질</h3>
+				<span class="sw-kma__muted"><?php echo esc_html( $basis ); ?></span>
+			</div>
+
+			<div class="sw-kma__air-grid">
+				<div class="sw-kma__air-summary g<?php echo esc_attr( (int) $main ); ?>">
+					<span class="sw-kma__air-face" aria-hidden="true"><?php echo esc_html( $main ? $grades[ $main ] : '-' ); ?></span>
+					<div>
+						<p class="sw-kma__air-label">통합대기환경지수 <b><?php echo esc_html( null === $air['khai'] ? '-' : number_format( $air['khai'] ) ); ?></b></p>
+						<p class="sw-kma__air-tip"><?php echo esc_html( $main ? $tips[ $main ] : '측정값이 없습니다.' ); ?></p>
+					</div>
+				</div>
+
+				<div class="sw-kma__air-pm">
+					<?php foreach ( array( 'pm10' => $pm10_g, 'pm25' => $pm25_g ) as $k => $g ) : ?>
+						<?php $pos = $gauge( $k, $air[ $k ] ); ?>
+						<div class="sw-kma__air-pmrow g<?php echo esc_attr( (int) $g ); ?>">
+							<div class="sw-kma__air-pmhead">
+								<span><?php echo esc_html( SW_Air_API::ITEMS[ $k ][0] ); ?> <small><?php echo 'pm10' === $k ? 'PM10' : 'PM2.5'; ?></small></span>
+								<span class="sw-kma__air-badge"><?php echo esc_html( $g ? $grades[ $g ] : '-' ); ?></span>
+							</div>
+							<p class="sw-kma__air-value"><b><?php echo esc_html( $val( $k, $air[ $k ] ) ); ?></b> ㎍/㎥
+								<?php if ( null !== $air[ $k . '_24' ] ) : ?><span class="sw-kma__muted">· 24시간 평균 <?php echo esc_html( $val( $k, $air[ $k . '_24' ] ) ); ?></span><?php endif; ?>
+							</p>
+							<div class="sw-kma__air-gauge" aria-hidden="true"><i></i><i></i><i></i><i></i><?php if ( null !== $pos ) : ?><b style="left:<?php echo esc_attr( round( $pos, 1 ) ); ?>%"></b><?php endif; ?></div>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			</div>
+
+			<dl class="sw-kma__air-gases">
+				<?php foreach ( array( 'o3', 'no2', 'co', 'so2' ) as $k ) : ?>
+					<?php $g = SW_Air_API::grade( $k, $air[ $k ] ); ?>
+					<div class="g<?php echo esc_attr( (int) $g ); ?>">
+						<dt><?php echo esc_html( SW_Air_API::ITEMS[ $k ][0] ); ?></dt>
+						<dd><b><?php echo esc_html( $val( $k, $air[ $k ] ) ); ?></b> <?php echo esc_html( SW_Air_API::ITEMS[ $k ][1] ); ?></dd>
+						<dd class="sw-kma__air-badge"><?php echo esc_html( $g ? $grades[ $g ] : '-' ); ?></dd>
+					</div>
+				<?php endforeach; ?>
+			</dl>
+
+			<?php if ( ! is_wp_error( $fc ) && $fc['days'] ) : ?>
+				<?php
+				$labels = array( '오늘', '내일', '모레' );
+				$today  = new DateTimeImmutable( 'today', wp_timezone() );
+				$first  = reset( $fc['days'] );
+				?>
+				<div class="sw-kma__air-fc">
+					<h4>예보 <span class="sw-kma__muted"><?php echo esc_html( $region['forecast'] . ' 권역 · ' . preg_replace( '/^\d{4}-(\d{2})-(\d{2})\s*/', '$1.$2 ', $fc['issued'] ) ); ?></span></h4>
+					<div class="sw-kma__air-fcdays">
+						<?php foreach ( $fc['days'] as $date => $d ) : ?>
+							<?php
+							$diff = (int) $today->diff( new DateTimeImmutable( $date, wp_timezone() ) )->format( '%r%a' );
+							if ( $diff < 0 || $diff > 2 ) {
+								continue;
+							}
+							?>
+							<div class="sw-kma__air-fcday">
+								<strong><?php echo esc_html( $labels[ $diff ] ); ?> <span class="sw-kma__muted"><?php echo esc_html( substr( $date, 5, 2 ) . '.' . substr( $date, 8, 2 ) ); ?></span></strong>
+								<?php foreach ( array( 'PM10' => '미세먼지', 'PM25' => '초미세먼지' ) as $code => $name ) : ?>
+									<?php
+									$txt = $d[ $code ][ $region['forecast'] ] ?? '';
+									$g   = (int) array_search( $txt, $grades, true );
+									?>
+									<span class="sw-kma__air-fcitem g<?php echo esc_attr( $g ); ?>"><?php echo esc_html( $name ); ?> <span class="sw-kma__air-badge"><?php echo esc_html( '' !== $txt ? $txt : '-' ); ?></span></span>
+								<?php endforeach; ?>
+							</div>
+						<?php endforeach; ?>
+					</div>
+					<?php if ( ! empty( $first['overall'] ) ) : ?>
+						<p class="sw-kma__air-overall"><?php echo esc_html( $first['overall'] ); ?></p>
+					<?php endif; ?>
+				</div>
+			<?php elseif ( is_wp_error( $fc ) && current_user_can( 'manage_options' ) ) : ?>
+				<?php self::render_error( $fc ); ?>
+			<?php endif; ?>
+
+			<p class="sw-kma__astro-foot">자료: 환경부·한국환경공단 에어코리아. 실시간 측정값은 인증을 받지 않은 자료로, 측정소 현지 사정이나 수신 상태에 따라 오류가 있거나 빠질 수 있습니다.</p>
+			<?php if ( 'sido' === $air['mode'] && current_user_can( 'manage_options' ) ) : ?>
+				<p class="sw-kma__astro-foot">관리자 안내: 공공데이터포털에서 <b>한국환경공단_에어코리아_측정소정보</b>를 활용신청하면 시도 평균 대신 관측지점에서 가장 가까운 측정소 값으로 표시됩니다.</p>
+			<?php endif; ?>
 		</section>
 		<?php
 	}

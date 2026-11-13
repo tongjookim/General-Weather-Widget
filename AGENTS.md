@@ -6,10 +6,11 @@ AI 코딩 에이전트와 기여자를 위한 개발 안내입니다. 사용자�
 
 - 워드프레스 플러그인. 빌드 단계, Composer, npm이 **없습니다**. PHP·CSS·JS 파일을 그대로 배포합니다.
 - 외부 의존성 없음: 차트·아이콘은 서버에서 SVG로 만들고, JS는 바닐라 ES5입니다(`fetch`, `closest` 사용).
-- 두 데이터원:
+- 세 데이터원:
   - **KASI**: 공공데이터포털 XML API → `SW_KSASI_API` (`includes/class-sw-ksasi-api.php`)
   - **기상청 API허브**: typ01 텍스트 API → `SW_KMA_API` (`includes/kma/class-sw-kma-api.php`)
-- API 명세 요약은 `openapi.md`(KASI), `kma-api.md`(기상청)에 있습니다. 실제 응답이 명세와 다른 부분은 아래 **함정** 절을 따르세요.
+  - **에어코리아**: 공공데이터포털 JSON API(KASI와 같은 서비스 키) → `SW_Air_API` (`includes/air/class-sw-air-api.php`)
+- API 명세 요약은 `openapi.md`(KASI), `kma-api.md`(기상청), `airkorea.md`(에어코리아)에 있습니다. 실제 응답이 명세와 다른 부분은 아래 **함정** 절을 따르세요.
 
 ## 코드 구조와 흐름
 
@@ -20,14 +21,15 @@ AI 코딩 에이전트와 기여자를 위한 개발 안내입니다. 사용자�
 | `includes/class-sw-ksasi-admin.php` | 설정 → KASI·기상청 페이지, `sanitize()`, 연결 테스트, `admin-post` 액션(캐시 비우기, 날씨 페이지 생성) |
 | `includes/class-sw-ksasi-shortcode.php` | `[sw_ksasi_riseset]`, `wp_ajax(_nopriv)_sw_ksasi_riseset` |
 | `includes/kma/class-sw-kma-page.php` | `[sw_kma_weather]`. 섹션별 `render_*()` 메서드 |
-| `includes/kma/class-sw-kma-data.php` | ASOS 지점 목록(권역별), 풍향·날씨 해석, 아이콘 SVG |
+| `includes/kma/class-sw-kma-data.php` | ASOS 지점 목록(권역별), 에어코리아 권역 매핑(`air_region()`), 풍향·날씨 해석, 아이콘 SVG |
+| `includes/air/class-sw-air-api.php` | 에어코리아 실시간 측정(전국 1회 호출), 예보, 측정소 좌표, 등급 계산 |
 
 - 설정은 옵션 하나(`sw_ksasi_settings`, 배열)에 모두 저장합니다. 새 설정을 추가할 때는 아래 두 곳을 **함께** 고치세요.
   - `sw_ksasi_default_settings()`
   - `SW_KSASI_Admin::sanitize()`
 
   `sanitize()`는 `update_option()`을 코드에서 부를 때도 실행됩니다. 폼에 없는 값(예: `kma_page_id`)은 `$input`에 있으면 그 값을, 없으면 이전 값을 유지하도록 작성합니다.
-- 캐시는 transient만 씁니다. 키 접두사는 반드시 `sw_ksasi_`로 시작해야 `sw_ksasi_flush_cache()`가 지웁니다. 기상청은 `sw_ksasi_kma_`를 씁니다.
+- 캐시는 transient만 씁니다. 키 접두사는 반드시 `sw_ksasi_`로 시작해야 `sw_ksasi_flush_cache()`가 지웁니다. 기상청은 `sw_ksasi_kma_`, 에어코리아는 `sw_ksasi_air_`를 씁니다.
 
 ## 코딩 규칙
 
@@ -65,6 +67,17 @@ AI 코딩 에이전트와 기여자를 위한 개발 안내입니다. 사용자�
 - 정시 자료는 정각 몇 분 뒤에 올라옵니다. `all_latest()`는 비어 있으면 한 시간 전 자료를 씁니다.
 - 페이지에서 쓰는 컬럼은 `SW_KMA_API::*_KEYS`에 넣어 두세요. 응답에 없어도 `null`로 채워져 경고가 나지 않습니다.
 
+### 에어코리아
+- 데이터포털 키는 KASI와 같지만 **API마다 활용신청**이 따로 필요합니다. 미신청 API는 HTTP 403 + `OpenAPI_ServiceResponse/cmmMsgHeader`(코드 30)로 옵니다.
+  - 필수: 대기오염정보(`ArpltnInforInqireSvc`). 선택: 측정소정보(`MsrstnInfoInqireSvc`). 대기오염통계·통합대기환경지수 서비스는 쓰지 않습니다.
+- 측정소별 호출 대신 `getCtprvnRltmMesureDnsty?sidoName=전국&numOfRows=1000`을 한 번 불러(약 670곳, 330KB) 필요한 항목만 줄여 캐시합니다. 일일 호출 한도(개발계정 500회)를 지키기 위해서입니다.
+- 실시간 자료의 시도명에서 광주·전남은 `전남광주`로 묶여 옵니다. 예보(`informGrade`)는 `광주`, `전남`, `경기남부`, `경기북부`, `영서`, `영동` 등 19개 권역으로 나뉩니다. 매핑은 `SW_KMA_Data::air_region()`에 있습니다.
+- 측정값이 `"-"`이거나 `*Flag`(통신장애, 점검중 등)가 있으면 결측(`null`)입니다.
+- 등급은 API의 `*Grade`(24시간 이동평균 기준) 대신 1시간 값으로 직접 계산합니다(`SW_Air_API::grade()`). 시도 평균 모드에서도 같은 기준을 쓰기 위해서입니다. 통합대기환경지수는 측정소 모드에서 `khaiGrade`를 씁니다.
+- `getMsrstnList`의 `dmX`/`dmY`는 버전에 따라 위도·경도가 뒤바뀌므로 값 범위로 구분합니다.
+- 예보는 하루 4회(05·11·17·23시) 발표되고, 자정~05시에는 오늘 날짜 발표분이 없어 어제 날짜로 다시 조회합니다.
+- 이용 약관에 따라 화면에 출처(환경부·한국환경공단 에어코리아)와 "인증받지 않은 실시간 자료" 문구를 표시해야 합니다.
+
 ### 위젯
 - AJAX 날짜 이동은 nonce 대신 숏코드 속성 JSON의 `wp_hash` 서명을 씁니다. 페이지 캐시 환경에서도 만료되지 않게 하기 위해서입니다.
   - 속성을 추가하면 `normalize()`에서 정규화한 값이 서명에 포함됩니다.
@@ -83,12 +96,13 @@ AI 코딩 에이전트와 기여자를 위한 개발 안내입니다. 사용자�
 2. **API 응답 없이 렌더링 확인**: WordPress를 로드하는 CLI 스크립트에서 `pre_http_request` 필터로 가짜 응답을 돌려주고 `do_shortcode()` 결과를 확인합니다.
    - 키 설정은 `option_sw_ksasi_settings` 필터로 주입하면 DB를 바꾸지 않습니다.
    - 가짜 응답은 실제 형식(EUC-KR, `help=1` 도움말, 결측값)을 흉내 내야 의미가 있습니다.
-3. **실제 API 확인**: 키가 설정된 환경에서 `SW_KMA_API::hourly()`, `all_latest()`, `daily()`, `normal()`, `station_coords()`와 `SW_KSASI_API::get_area()`, `get_coords()`, `get_lunar_age()`를 호출해 봅니다. 테스트 후 `sw_ksasi_flush_cache()`로 캐시를 비우세요.
+3. **실제 API 확인**: 키가 설정된 환경에서 `SW_KMA_API::hourly()`, `all_latest()`, `daily()`, `normal()`, `station_coords()`와 `SW_KSASI_API::get_area()`, `get_coords()`, `get_lunar_age()`, `SW_Air_API::realtime()`, `forecast()`, `for_location()`을 호출해 봅니다.
+   - 측정소 모드는 `pre_transient_sw_ksasi_air_stations` 필터로 가짜 좌표를 넣어 확인할 수 있습니다. 테스트 후 `sw_ksasi_flush_cache()`로 캐시를 비우세요.
 4. **화면 확인**: 헤드리스 Chromium으로 데스크톱(1200px)과 모바일(390px), 라이트/다크 모드 스크린샷을 찍어 봅니다.
    ```bash
    chromium-browser --headless --no-sandbox --window-size=390,1400 --screenshot=out.png <URL>
    ```
-5. 관리자 화면 **설정 → KASI·기상청**에서 두 연결 테스트가 모두 정상인지 확인합니다.
+5. 관리자 화면 **설정 → KASI·기상청**에서 세 연결 테스트(KASI, 기상청, 에어코리아)가 모두 정상인지 확인합니다.
 
 ## 보안·운영 주의
 

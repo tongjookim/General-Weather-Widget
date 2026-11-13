@@ -132,7 +132,21 @@ class SW_KSASI_Admin {
 				<?php endif; ?>
 			<?php endif; ?>
 
-			<?php $kma_page = (int) $s['kma_page_id'] ? get_post( (int) $s['kma_page_id'] ) : null; ?>
+			<?php
+			// 에어코리아 연결 테스트 (공공데이터포털 서비스 키 공용)
+			if ( '' !== $s['service_key'] ) :
+				$air_test   = SW_Air_API::realtime();
+				$air_coords = is_wp_error( $air_test ) ? array() : SW_Air_API::station_coords();
+				?>
+				<?php if ( is_wp_error( $air_test ) ) : ?>
+					<div class="notice notice-warning"><p><strong>에어코리아 대기오염정보 연결 실패:</strong> <?php echo esc_html( $air_test->get_error_message() ); ?> (날씨 페이지의 대기질 섹션이 표시되지 않습니다)</p></div>
+				<?php else : ?>
+					<div class="notice notice-success"><p><strong>에어코리아 연결 정상</strong> — 측정소 <?php echo esc_html( count( $air_test ) ); ?>곳, <?php echo esc_html( $air_test[0]['time'] ); ?> 기준.
+						<?php echo $air_coords ? esc_html( '측정소정보 사용 중: 관측지점에서 가장 가까운 측정소 기준으로 표시합니다.' ) : wp_kses( '측정소정보 API 미신청: 시도 평균으로 표시합니다. <b>한국환경공단_에어코리아_측정소정보</b>를 활용신청하면 가까운 측정소 기준으로 바뀝니다.', array( 'b' => array() ) ); ?></p></div>
+				<?php endif; ?>
+			<?php endif; ?>
+
+			<?php $kma_page =(int) $s['kma_page_id'] ? get_post( (int) $s['kma_page_id'] ) : null; ?>
 
 			<form method="post" action="options.php">
 				<?php settings_fields( self::PAGE ); ?>
@@ -141,7 +155,7 @@ class SW_KSASI_Admin {
 						<th scope="row"><label for="sw_ksasi_key">서비스 키 (ServiceKey)</label></th>
 						<td>
 							<input type="text" id="sw_ksasi_key" class="large-text code" name="<?php echo esc_attr( SW_KSASI_OPTION ); ?>[service_key]" value="<?php echo esc_attr( $s['service_key'] ); ?>" autocomplete="off">
-							<p class="description">공공데이터포털(data.go.kr)에서 <strong>한국천문연구원_출몰시각 정보</strong> 활용신청 후 발급받은 키. 인코딩/디코딩 키 모두 사용 가능합니다.</p>
+							<p class="description">공공데이터포털(data.go.kr)에서 <strong>한국천문연구원_출몰시각 정보</strong> 활용신청 후 발급받은 키. 인코딩/디코딩 키 모두 사용 가능합니다.<br>날씨 페이지의 대기질도 이 키를 씁니다: <strong>한국환경공단_에어코리아_대기오염정보</strong>(필수), <strong>한국환경공단_에어코리아_측정소정보</strong>(선택)를 같은 계정에서 활용신청하세요.</p>
 						</td>
 					</tr>
 					<tr>
