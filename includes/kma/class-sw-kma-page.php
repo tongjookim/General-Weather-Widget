@@ -57,7 +57,11 @@ class SW_KMA_Page {
 	}
 
 	public static function shortcode( $atts ) {
-		$atts = shortcode_atts( array( 'stn' => '' ), (array) $atts, self::TAG );
+		$atts = shortcode_atts( array(
+			'stn'        => '',
+			'news_cat'   => '날씨 예보', // 하단 기사 카테고리 (이름·슬러그·ID)
+			'news_count' => 4,          // 0 이면 기사 블록 숨김
+		), (array) $atts, self::TAG );
 
 		// 지점: URL 지점번호 > 사용자 위치(가장 가까운 지점) > 숏코드 속성 > 설정 기본값
 		$stn            = isset( $_GET[ self::QUERY ] ) ? absint( $_GET[ self::QUERY ] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
@@ -106,6 +110,7 @@ class SW_KMA_Page {
 		self::render_daily( $stn );
 		self::render_astro( $stn );
 		self::render_nation( $stn );
+		self::render_news( $atts['news_cat'], (int) $atts['news_count'] );
 
 		echo '<p class="sw-kma__credit">자료: 기상청 API허브 지상관측(ASOS), 환경부·한국환경공단 에어코리아, 한국천문연구원 출몰시각·월령 정보, 달 이미지 NASA SVS. 관측값과 대기질 측정값은 품질검사 전 자료로 실제와 다를 수 있습니다.</p>';
 		echo '</div>';
@@ -817,6 +822,56 @@ class SW_KMA_Page {
 					<?php endif; ?>
 				</div>
 			</div>
+		</section>
+		<?php
+	}
+
+	/* ── 날씨 예보 기사 ─────────────────────────────────── */
+
+	private static function render_news( $cat, $count ) {
+		$count = min( 12, max( 0, $count ) );
+		if ( ! $count ) {
+			return;
+		}
+		$term = is_numeric( $cat ) ? get_term( (int) $cat, 'category' ) : get_term_by( 'name', $cat, 'category' );
+		if ( ! $term || is_wp_error( $term ) ) {
+			$term = get_term_by( 'slug', sanitize_title( $cat ), 'category' );
+		}
+		if ( ! $term || is_wp_error( $term ) ) {
+			return;
+		}
+		$q = new WP_Query( array(
+			'cat'                 => $term->term_id,
+			'posts_per_page'      => $count,
+			'post_status'         => 'publish',
+			'ignore_sticky_posts' => true,
+			'no_found_rows'       => true,
+		) );
+		if ( ! $q->have_posts() ) {
+			return;
+		}
+		?>
+		<section class="sw-kma__card sw-kma__news" aria-labelledby="sw-kma-news-title">
+			<div class="sw-kma__card-head">
+				<h3 id="sw-kma-news-title"><?php echo esc_html( $term->name ); ?> 기사</h3>
+				<a class="sw-kma__more" href="<?php echo esc_url( get_term_link( $term ) ); ?>">더보기 ›</a>
+			</div>
+			<ul class="sw-kma__news-list">
+				<?php foreach ( $q->posts as $p ) : ?>
+					<li class="sw-kma__news-item">
+						<a href="<?php echo esc_url( get_permalink( $p ) ); ?>">
+							<?php if ( has_post_thumbnail( $p ) ) : ?>
+								<span class="sw-kma__news-thumb"><?php echo get_the_post_thumbnail( $p, 'medium', array( 'loading' => 'lazy', 'alt' => '' ) ); ?></span>
+							<?php endif; ?>
+							<span class="sw-kma__news-body">
+								<strong><?php echo esc_html( wp_strip_all_tags( get_the_title( $p ) ) ); ?></strong>
+								<span class="sw-kma__news-excerpt"><?php echo esc_html( wp_html_excerpt( wp_strip_all_tags( get_the_excerpt( $p ) ), 110, '…' ) ); ?></span>
+								<time datetime="<?php echo esc_attr( get_the_date( 'c', $p ) ); ?>"><?php echo esc_html( get_the_date( 'Y.m.d H:i', $p ) ); ?></time>
+							</span>
+						</a>
+					</li>
+				<?php endforeach; ?>
+			</ul>
 		</section>
 		<?php
 	}

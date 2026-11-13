@@ -1023,6 +1023,99 @@ html.dark .sw-kma__life {
 	font-size: 12px;
 }
 
+/* 날씨 예보 기사 — 1열 블록 */
+.sw-kma__more {
+	color: var(--kma-muted);
+	font-size: 13px;
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.sw-kma__more:hover {
+	color: var(--kma-accent);
+}
+
+.sw-kma__news-list {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.sw-kma__news-item {
+	margin: 0;
+}
+
+.sw-kma__news-item > a {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 12px;
+	border: 1px solid var(--kma-line);
+	border-radius: 12px;
+	background: var(--kma-bg);
+	color: inherit;
+	text-decoration: none;
+	transition: border-color .15s, background-color .15s;
+}
+
+.sw-kma__news-item > a:hover {
+	border-color: var(--kma-accent);
+	background: var(--kma-surface);
+}
+
+.sw-kma__news-thumb {
+	flex: 0 0 160px;
+	aspect-ratio: 16 / 10;
+	overflow: hidden;
+	border-radius: 8px;
+	background: var(--kma-surface);
+}
+
+.sw-kma__news-thumb img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.sw-kma__news-body {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.sw-kma__news-body strong {
+	display: -webkit-box;
+	overflow: hidden;
+	color: var(--kma-ink);
+	font-size: 16px;
+	line-height: 1.4;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
+.sw-kma__news-item > a:hover strong {
+	color: var(--kma-accent);
+}
+
+.sw-kma__news-excerpt {
+	display: -webkit-box;
+	overflow: hidden;
+	color: var(--kma-text);
+	font-size: 13px;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
+.sw-kma__news-body time {
+	color: var(--kma-muted);
+	font-size: 12px;
+}
+
 /* 반응형 */
 @media (max-width: 860px) {
 	.sw-kma__now {
@@ -1069,6 +1162,23 @@ html.dark .sw-kma__life {
 
 	.sw-kma__picker select {
 		min-width: 0;
+	}
+
+	.sw-kma__news-item > a {
+		gap: 12px;
+		padding: 10px;
+	}
+
+	.sw-kma__news-thumb {
+		flex-basis: 104px;
+	}
+
+	.sw-kma__news-body strong {
+		font-size: 14px;
+	}
+
+	.sw-kma__news-excerpt {
+		display: none;
 	}
 
 	.sw-kma__now-temp {
