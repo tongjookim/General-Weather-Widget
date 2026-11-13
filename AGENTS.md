@@ -9,7 +9,7 @@ AI 코딩 에이전트와 기여자를 위한 개발 안내입니다. 사용자�
 - 세 데이터원:
   - **KASI**: 공공데이터포털 XML API → `SW_KSASI_API` (`includes/class-sw-ksasi-api.php`)
   - **기상청 API허브**: typ01 텍스트 API → `SW_KMA_API` (`includes/kma/class-sw-kma-api.php`)
-  - **에어코리아**: 공공데이터포털 JSON API(KASI와 같은 서비스 키) → `SW_Air_API` (`includes/air/class-sw-air-api.php`)
+  - **에어코리아**: 공공데이터포털 JSON API(`air_service_key` → 실패 시 KASI `service_key`) → `SW_Air_API` (`includes/air/class-sw-air-api.php`)
 - API 명세 요약은 `openapi.md`(KASI), `kma-api.md`(기상청), `airkorea.md`(에어코리아)에 있습니다. 실제 응답이 명세와 다른 부분은 아래 **함정** 절을 따르세요.
 
 ## 코드 구조와 흐름
@@ -68,7 +68,7 @@ AI 코딩 에이전트와 기여자를 위한 개발 안내입니다. 사용자�
 - 페이지에서 쓰는 컬럼은 `SW_KMA_API::*_KEYS`에 넣어 두세요. 응답에 없어도 `null`로 채워져 경고가 나지 않습니다.
 
 ### 에어코리아
-- 데이터포털 키는 KASI와 같지만 **API마다 활용신청**이 따로 필요합니다. 미신청 API는 HTTP 403 + `OpenAPI_ServiceResponse/cmmMsgHeader`(코드 30)로 옵니다.
+- 공공데이터포털 키는 계정마다 다르고, **API마다 활용신청**이 따로 필요합니다. 그래서 `SW_Air_API::request()`는 `air_service_key`로 먼저 호출하고, 인증 오류(`sw_air_auth`)면 KASI `service_key`로 한 번 더 시도합니다. 미신청 API는 HTTP 403 + `OpenAPI_ServiceResponse/cmmMsgHeader`(코드 30)로 옵니다.
   - 필수: 대기오염정보(`ArpltnInforInqireSvc`). 선택: 측정소정보(`MsrstnInfoInqireSvc`). 대기오염통계·통합대기환경지수 서비스는 쓰지 않습니다.
 - 측정소별 호출 대신 `getCtprvnRltmMesureDnsty?sidoName=전국&numOfRows=1000`을 한 번 불러(약 670곳, 330KB) 필요한 항목만 줄여 캐시합니다. 일일 호출 한도(개발계정 500회)를 지키기 위해서입니다.
 - 실시간 자료의 시도명에서 광주·전남은 `전남광주`로 묶여 옵니다. 예보(`informGrade`)는 `광주`, `전남`, `경기남부`, `경기북부`, `영서`, `영동` 등 19개 권역으로 나뉩니다. 매핑은 `SW_KMA_Data::air_region()`에 있습니다.
@@ -78,6 +78,11 @@ AI 코딩 에이전트와 기여자를 위한 개발 안내입니다. 사용자�
 - `getMsrstnList`의 `dmX`/`dmY`는 버전에 따라 위도·경도가 뒤바뀌므로 값 범위로 구분합니다.
 - 예보는 하루 4회(05·11·17·23시) 발표되고, 자정~05시에는 오늘 날짜 발표분이 없어 어제 날짜로 다시 조회합니다.
 - 이용 약관에 따라 화면에 출처(환경부·한국환경공단 에어코리아)와 "인증받지 않은 실시간 자료" 문구를 표시해야 합니다. 대기질 섹션 안의 문구는 사용자 요청으로 뺐고, 페이지 맨 아래 자료 출처(`sw-kma__credit`)에 함께 표시합니다. 이 문구는 지우지 마세요.
+
+### 날씨 페이지 위치
+- 지점 결정 순서: `?kma_stn` > `?kma_ll`(가장 가까운 ASOS 지점) > 숏코드 `stn` > 설정 기본값. 대기질은 `kma_ll`이 있으면 사용자 좌표에서 가장 가까운 측정소를 고릅니다.
+- JS는 `kma_stn`과 `kma_ll`이 **둘 다 없을 때만**(`data-geo-auto`) 위치 동의를 자동 요청합니다. 국외 좌표처럼 `kma_ll`이 무효여도 다시 묻지 않습니다(새로고침 반복 방지). 거부하면 `localStorage.sw_kma_geo=denied`로 자동 요청을 멈춥니다.
+- 좌표는 소수 둘째 자리로 잘라 URL에 넣고 서버도 다시 반올림합니다. 더 정밀한 좌표를 받거나 저장하지 마세요(개인정보, 캐시 분산).
 
 ### 위젯
 - AJAX 날짜 이동은 nonce 대신 숏코드 속성 JSON의 `wp_hash` 서명을 씁니다. 페이지 캐시 환경에서도 만료되지 않게 하기 위해서입니다.

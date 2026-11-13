@@ -14,6 +14,10 @@ class SW_KMA_Page {
 
 	const TAG   = 'sw_kma_weather';
 	const QUERY = 'kma_stn';
+	const LL    = 'kma_ll'; // 사용자 위치 "위도,경도" (브라우저 위치정보 동의 시 JS 가 붙인다)
+
+	/** 사용자 위치 (URL kma_ll). 개인정보·캐시를 고려해 소수 둘째 자리(약 1km)로 자른다. */
+	private static $user_ll = null;
 
 	public static function init() {
 		add_shortcode( self::TAG, array( __CLASS__, 'shortcode' ) );
@@ -55,8 +59,17 @@ class SW_KMA_Page {
 	public static function shortcode( $atts ) {
 		$atts = shortcode_atts( array( 'stn' => '' ), (array) $atts, self::TAG );
 
-		// 지점: URL 인자 > 숏코드 속성 > 설정 기본값
-		$stn = isset( $_GET[ self::QUERY ] ) ? absint( $_GET[ self::QUERY ] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
+		// 지점: URL 지점번호 > 사용자 위치(가장 가까운 지점) > 숏코드 속성 > 설정 기본값
+		$stn            = isset( $_GET[ self::QUERY ] ) ? absint( $_GET[ self::QUERY ] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
+		$explicit       = (bool) SW_KMA_Data::station( $stn );
+		self::$user_ll  = $explicit ? null : self::parse_ll();
+		$geo_dist       = null;
+		if ( self::$user_ll ) {
+			list( $stn, $geo_dist ) = self::nearest_station( self::$user_ll[0], self::$user_ll[1] );
+			if ( ! $stn ) {
+				self::$user_ll = null;
+			}
+		}
 		if ( ! SW_KMA_Data::station( $stn ) ) {
 			$stn = absint( $atts['stn'] );
 		}
@@ -72,8 +85,12 @@ class SW_KMA_Page {
 		wp_enqueue_script( 'sw-kma-weather' );
 
 		ob_start();
-		echo '<div class="sw-kma">';
-		self::render_header( $stn );
+		// 지점도 위치도 지정되지 않았으면 JS 가 위치정보 동의를 요청한다.
+		// (kma_ll 이 있었는데 범위 밖·오류면 다시 묻지 않는다 — 새로고침 반복 방지)
+		$ll_given = isset( $_GET[ self::LL ] ); // phpcs:ignore WordPress.Security.NonceVerification
+		$auto     = ! $explicit && ! $ll_given;
+		echo '<div class="sw-kma"' . ( $auto ? ' data-geo-auto="1"' : '' ) . ' data-ll-param="' . esc_attr( self::LL ) . '">';
+		self::render_header( $stn, $geo_dist, ! $explicit && $ll_given && ! self::$user_ll );
 
 		$hourly = SW_KMA_API::hourly( $stn, 24 );
 		if ( is_wp_error( $hourly ) ) {
@@ -106,6 +123,38 @@ class SW_KMA_Page {
 		return null === $v ? '-' : number_format( (float) $v, $dec ) . $unit;
 	}
 
+	/**
+	 * URL 의 kma_ll="위도,경도" → [lat, lon] (국내 범위만)
+	 */
+	private static function parse_ll() {
+		$raw = isset( $_GET[ self::LL ] ) ? sanitize_text_field( wp_unslash( $_GET[ self::LL ] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		if ( ! preg_match( '/^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/', $raw, $m ) ) {
+			return null;
+		}
+		$lat = round( (float) $m[1], 2 );
+		$lon = round( (float) $m[2], 2 );
+		return ( $lat >= 32.5 && $lat <= 39 && $lon >= 124 && $lon <= 132 ) ? array( $lat, $lon ) : null;
+	}
+
+	/**
+	 * 좌표에서 가장 가까운 ASOS 지점 [지점번호, 거리km]
+	 */
+	private static function nearest_station( $lat, $lon ) {
+		$best = 0;
+		$dist = INF;
+		foreach ( SW_KMA_API::station_coords() as $id => $c ) {
+			if ( ! SW_KMA_Data::station( $id ) ) {
+				continue;
+			}
+			$d = SW_Air_API::distance( $lat, $lon, $c['lat'], $c['lon'] );
+			if ( $d < $dist ) {
+				$dist = $d;
+				$best = $id;
+			}
+		}
+		return array( $best, $best ? $dist : null );
+	}
+
 	private static function station_url( $stn ) {
 		return add_query_arg( self::QUERY, (int) $stn, get_permalink() ) . '#sw-kma';
 	}
@@ -128,7 +177,7 @@ class SW_KMA_Page {
 
 	/* ── 헤더 + 지점 선택 ─────────────────────────────── */
 
-	private static function render_header( $stn ) {
+	private static function render_header( $stn, $geo_dist = null, $ll_failed = false ) {
 		$st     = SW_KMA_Data::station( $stn );
 		$groups = array();
 		foreach ( SW_KMA_Data::stations() as $id => $s ) {
@@ -138,9 +187,21 @@ class SW_KMA_Page {
 		<header class="sw-kma__head" id="sw-kma">
 			<div>
 				<h2 class="sw-kma__title"><?php echo esc_html( $st['name'] ); ?> 날씨</h2>
-				<p class="sw-kma__sub"><?php echo esc_html( $st['region'] ); ?> · 지점번호 <?php echo esc_html( $stn ); ?> · 기상청 종관기상관측</p>
+				<p class="sw-kma__sub">
+					<?php if ( null !== $geo_dist ) : ?>
+						<span class="sw-kma__geo-on">내 위치에서 가장 가까운 관측지점 (<?php echo esc_html( number_format( $geo_dist, 1 ) ); ?>km)</span> ·
+					<?php elseif ( $ll_failed ) : ?>
+						<span class="sw-kma__geo-on">내 위치가 국내 관측 범위 밖이라 기본 지점을 보여줍니다</span> ·
+					<?php endif; ?>
+					<?php echo esc_html( $st['region'] ); ?> · 지점번호 <?php echo esc_html( $stn ); ?> · 기상청 종관기상관측
+				</p>
+				<p class="sw-kma__geo-msg" role="status" aria-live="polite" hidden></p>
 			</div>
 			<form class="sw-kma__picker" method="get" action="<?php echo esc_url( get_permalink() ); ?>#sw-kma">
+				<button type="button" class="sw-kma__geo-btn" data-geo-locate hidden>
+					<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg>
+					내 위치
+				</button>
 				<label class="screen-reader-text" for="sw-kma-stn">관측지점 선택</label>
 				<select id="sw-kma-stn" name="<?php echo esc_attr( self::QUERY ); ?>" data-autosubmit>
 					<?php foreach ( $groups as $region => $items ) : ?>
@@ -382,10 +443,15 @@ class SW_KMA_Page {
 		if ( ! $region ) {
 			return null;
 		}
-		$coords = SW_KMA_API::station_coords();
-		$lat    = isset( $coords[ $stn ] ) ? $coords[ $stn ]['lat'] : null;
-		$lon    = isset( $coords[ $stn ] ) ? $coords[ $stn ]['lon'] : null;
-		$air    = SW_Air_API::for_location( $lat, $lon, $region['sido'] );
+		// 사용자 위치가 있으면 그 좌표에서, 없으면 관측지점 좌표에서 가장 가까운 측정소
+		if ( self::$user_ll ) {
+			list( $lat, $lon ) = self::$user_ll;
+		} else {
+			$coords = SW_KMA_API::station_coords();
+			$lat    = isset( $coords[ $stn ] ) ? $coords[ $stn ]['lat'] : null;
+			$lon    = isset( $coords[ $stn ] ) ? $coords[ $stn ]['lon'] : null;
+		}
+		$air = SW_Air_API::for_location( $lat, $lon, $region['sido'] );
 		if ( is_wp_error( $air ) ) {
 			if ( current_user_can( 'manage_options' ) ) {
 				self::render_error( $air );
@@ -397,7 +463,7 @@ class SW_KMA_Page {
 		$grades = SW_Air_API::GRADES;
 		$time   = strlen( $air['time'] ) >= 16 ? substr( $air['time'], 11, 5 ) : $air['time'];
 		if ( 'nearest' === $air['mode'] ) {
-			$basis = sprintf( '%s 측정소(관측지점에서 %.1fkm) · %s 기준', $air['label'], $air['dist'], $time );
+			$basis = sprintf( '%s 측정소(%s에서 %.1fkm) · %s 기준', $air['label'], self::$user_ll ? '내 위치' : '관측지점', $air['dist'], $time );
 		} else {
 			$basis = sprintf( '%s 도시대기 측정소 %d곳 평균 · %s 기준', $air['label'], $air['count'], $time );
 		}

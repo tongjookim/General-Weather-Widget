@@ -62,6 +62,59 @@ html.dark .sw-kma {
 	font-size: 13px;
 }
 
+.sw-kma__picker {
+	display: flex;
+	gap: 8px;
+}
+
+.sw-kma__geo-btn {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 6px;
+	height: 42px;
+	padding: 0 14px;
+	border: 1px solid var(--kma-line);
+	border-radius: 10px;
+	background: var(--kma-bg);
+	color: var(--kma-ink);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.sw-kma__geo-btn[hidden] {
+	display: none;
+}
+
+.sw-kma__geo-btn svg {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+}
+
+.sw-kma__geo-btn:hover:not(:disabled) {
+	border-color: var(--kma-accent);
+	color: var(--kma-accent);
+}
+
+.sw-kma__geo-btn:disabled {
+	opacity: .6;
+	cursor: wait;
+}
+
+.sw-kma__geo-on {
+	color: var(--kma-accent);
+	font-weight: 700;
+}
+
+.sw-kma__geo-msg {
+	margin: 6px 0 0;
+	color: var(--kma-err);
+	font-size: 13px;
+}
+
 .sw-kma__picker select {
 	min-width: 180px;
 	height: 42px;
@@ -1012,6 +1065,10 @@ html.dark .sw-kma__life {
 	.sw-kma__picker,
 	.sw-kma__picker select {
 		width: 100%;
+	}
+
+	.sw-kma__picker select {
+		min-width: 0;
 	}
 
 	.sw-kma__now-temp {

@@ -6,7 +6,8 @@
  * - 대기오염정보(ArpltnInforInqireSvc): 시도별 실시간 측정정보, 대기질 예보통보 — 필수
  * - 측정소정보(MsrstnInfoInqireSvc): 측정소 좌표 — 선택. 있으면 가장 가까운 측정소, 없으면 시도 평균
  *
- * 인증키는 KASI 와 같은 공공데이터포털 서비스 키(service_key)를 쓴다.
+ * 인증키: 에어코리아 서비스 키(air_service_key)를 먼저 쓰고, 비어 있거나 인증 오류면 KASI 서비스 키(service_key)로 다시 시도한다.
+ * (API마다 다른 계정으로 활용신청한 경우를 위해)
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -269,7 +270,7 @@ class SW_Air_API {
 	/**
 	 * 두 좌표 사이 거리(km)
 	 */
-	private static function distance( $lat1, $lon1, $lat2, $lon2 ) {
+	public static function distance( $lat1, $lon1, $lat2, $lon2 ) {
 		$r  = 6371;
 		$p1 = deg2rad( $lat1 );
 		$p2 = deg2rad( $lat2 );
@@ -283,10 +284,24 @@ class SW_Air_API {
 	 * @return array|WP_Error items 배열
 	 */
 	private static function request( $operation, array $params ) {
-		$service_key = trim( (string) sw_ksasi_get_setting( 'service_key' ) );
-		if ( '' === $service_key ) {
+		$keys = array_values( array_unique( array_filter( array(
+			trim( (string) sw_ksasi_get_setting( 'air_service_key' ) ),
+			trim( (string) sw_ksasi_get_setting( 'service_key' ) ),
+		) ) ) );
+		if ( ! $keys ) {
 			return new WP_Error( 'sw_air_no_key', '공공데이터포털 서비스 키가 설정되지 않았습니다. [설정 > KASI·기상청]에서 입력하세요.' );
 		}
+		foreach ( $keys as $key ) {
+			$res = self::request_with_key( $operation, $params, $key );
+			// 인증 오류(미등록 키·미신청 API)면 다음 키로 다시 시도
+			if ( ! is_wp_error( $res ) || 'sw_air_auth' !== $res->get_error_code() ) {
+				return $res;
+			}
+		}
+		return $res;
+	}
+
+	private static function request_with_key( $operation, array $params, $service_key ) {
 		$params += array( 'returnType' => 'json', 'pageNo' => 1 );
 		$url     = self::BASE_URL . $operation . '?' . http_build_query( $params, '', '&', PHP_QUERY_RFC3986 ) . '&serviceKey=' . rawurlencode( $service_key );
 

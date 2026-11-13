@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function sw_ksasi_default_settings() {
 	return array(
 		'service_key' => '',
+		'air_service_key' => '',
 		'location'    => '서울',
 		'cache_hours' => 12,
 		'kma_auth_key' => '',

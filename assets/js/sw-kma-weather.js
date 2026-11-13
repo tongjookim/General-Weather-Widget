@@ -1,8 +1,62 @@
 /**
- * SW KMA 날씨 페이지 — 지점 선택 즉시 이동, 생활 예보 카드 넘기기, 전국 표 정렬
+ * SW KMA 날씨 페이지 — 사용자 위치 자동 선택, 지점 선택 즉시 이동, 생활 예보 카드 넘기기, 전국 표 정렬
  */
 (function () {
 	'use strict';
+
+	// 사용자 위치: 위치정보 동의를 받으면 "위도,경도"를 URL 에 붙여 다시 불러온다.
+	// 서버가 가장 가까운 관측지점과 대기질 측정소를 고른다. (좌표는 소수 둘째 자리로 잘라 보낸다)
+	document.querySelectorAll('.sw-kma').forEach(function (root) {
+		var btn = root.querySelector('[data-geo-locate]');
+		var msg = root.querySelector('.sw-kma__geo-msg');
+		var param = root.getAttribute('data-ll-param') || 'kma_ll';
+		var KEY = 'sw_kma_geo';
+
+		if (!('geolocation' in navigator) || !window.isSecureContext) { return; }
+		if (btn) { btn.hidden = false; }
+
+		function store(v) {
+			try { localStorage.setItem(KEY, v); } catch (e) { /* 저장 불가 환경 무시 */ }
+		}
+		function stored() {
+			try { return localStorage.getItem(KEY); } catch (e) { return null; }
+		}
+		function say(text) {
+			if (!msg) { return; }
+			msg.textContent = text;
+			msg.hidden = !text;
+		}
+
+		function locate(manual) {
+			if (manual) { say('현재 위치를 확인하는 중입니다…'); }
+			if (btn) { btn.disabled = true; }
+			navigator.geolocation.getCurrentPosition(function (pos) {
+				store('granted');
+				var url = new URL(window.location.href);
+				url.searchParams.delete('kma_stn');
+				url.searchParams.set(param, pos.coords.latitude.toFixed(2) + ',' + pos.coords.longitude.toFixed(2));
+				url.hash = manual ? 'sw-kma' : '';
+				window.location.replace(url.toString());
+			}, function (err) {
+				if (btn) { btn.disabled = false; }
+				if (err.code === 1) {
+					store('denied');
+					if (manual) { say('위치 권한이 거부되었습니다. 브라우저 설정에서 이 사이트의 위치 권한을 허용해 주세요.'); }
+				} else if (manual) {
+					say('현재 위치를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+				}
+			}, { enableHighAccuracy: false, timeout: 10000, maximumAge: 10 * 60 * 1000 });
+		}
+
+		if (btn) {
+			btn.addEventListener('click', function () { locate(true); });
+		}
+
+		// 지점을 고르지 않고 들어왔으면 자동으로 요청 (이전에 거부했으면 다시 묻지 않음)
+		if (root.hasAttribute('data-geo-auto') && stored() !== 'denied') {
+			locate(false);
+		}
+	});
 
 	// 지점 선택 시 바로 이동
 	document.querySelectorAll('.sw-kma [data-autosubmit]').forEach(function (sel) {

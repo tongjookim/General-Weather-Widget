@@ -41,6 +41,8 @@ class SW_KSASI_Admin {
 		$old   = sw_ksasi_get_setting();
 		$new   = array(
 			'service_key' => isset( $input['service_key'] ) ? self::sanitize_key_value( $input['service_key'] ) : '',
+			// 에어코리아 키 (비우면 위 서비스 키 사용). 폼에 없으면 이전 값 유지
+			'air_service_key' => isset( $input['air_service_key'] ) ? self::sanitize_key_value( $input['air_service_key'] ) : (string) ( $old['air_service_key'] ?? '' ),
 			'location'    => isset( $input['location'] ) ? sanitize_text_field( $input['location'] ) : '서울',
 			'cache_hours' => isset( $input['cache_hours'] ) ? min( 168, max( 1, absint( $input['cache_hours'] ) ) ) : 12,
 			// 기상청 API허브 인증키 (영문·숫자·-·_ 로 구성)
@@ -52,7 +54,7 @@ class SW_KSASI_Admin {
 			$new['location'] = '서울';
 		}
 		// 키가 바뀌면 이전 키로 저장된 캐시를 비운다.
-		if ( $old['service_key'] !== $new['service_key'] || $old['kma_auth_key'] !== $new['kma_auth_key'] ) {
+		if ( $old['service_key'] !== $new['service_key'] || $old['kma_auth_key'] !== $new['kma_auth_key'] || (string) ( $old['air_service_key'] ?? '' ) !== $new['air_service_key'] ) {
 			sw_ksasi_flush_cache();
 		}
 		return $new;
@@ -155,7 +157,14 @@ class SW_KSASI_Admin {
 						<th scope="row"><label for="sw_ksasi_key">서비스 키 (ServiceKey)</label></th>
 						<td>
 							<input type="text" id="sw_ksasi_key" class="large-text code" name="<?php echo esc_attr( SW_KSASI_OPTION ); ?>[service_key]" value="<?php echo esc_attr( $s['service_key'] ); ?>" autocomplete="off">
-							<p class="description">공공데이터포털(data.go.kr)에서 <strong>한국천문연구원_출몰시각 정보</strong> 활용신청 후 발급받은 키. 인코딩/디코딩 키 모두 사용 가능합니다.<br>날씨 페이지의 대기질도 이 키를 씁니다: <strong>한국환경공단_에어코리아_대기오염정보</strong>(필수), <strong>한국환경공단_에어코리아_측정소정보</strong>(선택)를 같은 계정에서 활용신청하세요.</p>
+							<p class="description">공공데이터포털(data.go.kr)에서 <strong>한국천문연구원_출몰시각 정보</strong> 활용신청 후 발급받은 키. 인코딩/디코딩 키 모두 사용 가능합니다.<br>아래 에어코리아 서비스 키를 비워 두면 날씨 페이지의 대기질도 이 키를 씁니다.</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="sw_air_key">에어코리아 서비스 키</label></th>
+						<td>
+							<input type="text" id="sw_air_key" class="large-text code" name="<?php echo esc_attr( SW_KSASI_OPTION ); ?>[air_service_key]" value="<?php echo esc_attr( $s['air_service_key'] ); ?>" autocomplete="off">
+							<p class="description">에어코리아 API를 다른 공공데이터포털 계정(키)으로 신청했다면 입력하세요. 비워 두면 위 서비스 키를 씁니다.<br>대기질 API는 이 키로 먼저 호출하고, 인증 오류가 나면 위 서비스 키로 다시 시도합니다. 필요한 API: <strong>한국환경공단_에어코리아_대기오염정보</strong>(필수), <strong>한국환경공단_에어코리아_측정소정보</strong>(선택, 가까운 측정소 기준).</p>
 						</td>
 					</tr>
 					<tr>

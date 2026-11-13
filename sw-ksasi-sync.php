@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       SW KASI Sync - 일출/일몰·월출/월몰 위젯 + 기상청 지상관측 페이지
  * Description:       한국천문연구원(KASI) 출몰시각 정보제공 OpenAPI(RiseSetInfoService)를 이용해 일출/일몰, 월출/월몰 위젯을 숏코드로 출력합니다. 사용법: [sw_ksasi_riseset location="서울"], 기상청 API허브 지상관측(ASOS)·에어코리아 대기질 날씨 페이지 [sw_kma_weather]
- * Version:           1.5.2
+ * Version:           1.5.4
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            SW Lab
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SW_KSASI_VERSION', '1.5.2' );
+define( 'SW_KSASI_VERSION', '1.5.4' );
 define( 'SW_KSASI_FILE', __FILE__ );
 define( 'SW_KSASI_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SW_KSASI_URL', plugin_dir_url( __FILE__ ) );
