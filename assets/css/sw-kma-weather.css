@@ -893,13 +893,18 @@ html.dark .sw-kma__life {
 	display: flex;
 	gap: 10px;
 	margin: 0;
-	padding: 2px 0 8px;
+	padding: 2px 0;
 	overflow-x: auto;
 	list-style: none;
 	scroll-snap-type: x mandatory;
 	scroll-behavior: smooth;
-	scrollbar-width: thin;
+	scrollbar-width: none; /* 스크롤 막대 숨김 (밀기·버튼으로 이동) */
+	-ms-overflow-style: none;
 	-webkit-overflow-scrolling: touch;
+}
+
+.sw-kma__life-list::-webkit-scrollbar {
+	display: none;
 }
 
 .sw-kma__life-item {
