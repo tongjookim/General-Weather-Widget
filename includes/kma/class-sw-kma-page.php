@@ -854,7 +854,6 @@ class SW_KMA_Page {
 		<section class="sw-kma__card sw-kma__news" aria-labelledby="sw-kma-news-title">
 			<div class="sw-kma__card-head">
 				<h3 id="sw-kma-news-title"><?php echo esc_html( $term->name ); ?> 기사</h3>
-				<a class="sw-kma__more" href="<?php echo esc_url( get_term_link( $term ) ); ?>">더보기 ›</a>
 			</div>
 			<ul class="sw-kma__news-list">
 				<?php foreach ( $q->posts as $p ) : ?>

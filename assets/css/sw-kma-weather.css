@@ -1023,22 +1023,11 @@ html.dark .sw-kma__life {
 	font-size: 12px;
 }
 
-/* 날씨 예보 기사 — 1열 블록 */
-.sw-kma__more {
-	color: var(--kma-muted);
-	font-size: 13px;
-	font-weight: 600;
-	text-decoration: none;
-}
-
-.sw-kma__more:hover {
-	color: var(--kma-accent);
-}
-
+/* 날씨 예보 기사 — 4열 카드 (태블릿 2열) */
 .sw-kma__news-list {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr);
-	gap: 10px;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 12px;
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -1050,9 +1039,9 @@ html.dark .sw-kma__life {
 
 .sw-kma__news-item > a {
 	display: flex;
-	align-items: center;
-	gap: 16px;
-	padding: 12px;
+	flex-direction: column;
+	height: 100%;
+	overflow: hidden;
 	border: 1px solid var(--kma-line);
 	border-radius: 12px;
 	background: var(--kma-bg);
@@ -1067,10 +1056,9 @@ html.dark .sw-kma__life {
 }
 
 .sw-kma__news-thumb {
-	flex: 0 0 160px;
+	display: block;
 	aspect-ratio: 16 / 10;
 	overflow: hidden;
-	border-radius: 8px;
 	background: var(--kma-surface);
 }
 
@@ -1079,45 +1067,53 @@ html.dark .sw-kma__life {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
+	transition: transform .25s;
+}
+
+.sw-kma__news-item > a:hover .sw-kma__news-thumb img {
+	transform: scale(1.04);
 }
 
 .sw-kma__news-body {
 	display: flex;
+	flex: 1;
 	flex-direction: column;
-	gap: 4px;
+	gap: 6px;
 	min-width: 0;
+	padding: 10px 12px 12px;
 }
 
 .sw-kma__news-body strong {
 	display: -webkit-box;
 	overflow: hidden;
 	color: var(--kma-ink);
-	font-size: 16px;
-	line-height: 1.4;
+	font-size: 14px;
+	line-height: 1.45;
 	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
+	-webkit-line-clamp: 3;
 }
 
 .sw-kma__news-item > a:hover strong {
 	color: var(--kma-accent);
 }
 
+/* 좁은 카드에서는 요약을 빼고 제목·날짜만 */
 .sw-kma__news-excerpt {
-	display: -webkit-box;
-	overflow: hidden;
-	color: var(--kma-text);
-	font-size: 13px;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
+	display: none;
 }
 
 .sw-kma__news-body time {
+	margin-top: auto;
 	color: var(--kma-muted);
 	font-size: 12px;
 }
 
 /* 반응형 */
 @media (max-width: 860px) {
+	.sw-kma__news-list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
 	.sw-kma__now {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -1164,21 +1160,16 @@ html.dark .sw-kma__life {
 		min-width: 0;
 	}
 
-	.sw-kma__news-item > a {
-		gap: 12px;
-		padding: 10px;
+	.sw-kma__news-list {
+		gap: 10px;
 	}
 
-	.sw-kma__news-thumb {
-		flex-basis: 104px;
+	.sw-kma__news-body {
+		padding: 8px 10px 10px;
 	}
 
 	.sw-kma__news-body strong {
-		font-size: 14px;
-	}
-
-	.sw-kma__news-excerpt {
-		display: none;
+		font-size: 13px;
 	}
 
 	.sw-kma__now-temp {
