@@ -686,60 +686,11 @@ html.dark .sw-kma__air {
 .sw-kma__air .g3 { --air: var(--air-3); }
 .sw-kma__air .g4 { --air: var(--air-4); }
 
-.sw-kma__air-grid {
+/* 미세먼지·초미세먼지와 가스 4종을 같은 2열 바둑판으로 */
+.sw-kma__air-pm,
+.sw-kma__air-gases {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
-	gap: 16px;
-}
-
-.sw-kma__air-summary {
-	display: flex;
-	align-items: center;
-	gap: 18px;
-	padding: 18px;
-	border-radius: 12px;
-	background: color-mix(in srgb, var(--air) 12%, var(--kma-bg));
-}
-
-.sw-kma__air-face {
-	display: grid;
-	flex-shrink: 0;
-	place-items: center;
-	width: 92px;
-	height: 92px;
-	border-radius: 50%;
-	background: var(--air);
-	color: #fff;
-	font-size: 20px;
-	font-weight: 800;
-	letter-spacing: -.04em;
-}
-
-html.dark .sw-kma__air-face {
-	color: #111;
-}
-
-.sw-kma__air-summary p {
-	margin: 0;
-}
-
-.sw-kma__air-label {
-	color: var(--kma-ink);
-	font-size: 14px;
-}
-
-.sw-kma__air-label b {
-	color: var(--air);
-	font-size: 18px;
-}
-
-.sw-kma__air-tip {
-	margin-top: 6px !important;
-	font-size: 14px;
-}
-
-.sw-kma__air-pm {
-	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 10px;
 }
 
@@ -817,31 +768,35 @@ html.dark .sw-kma__air-face {
 }
 
 .sw-kma__air-gases {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 10px;
-	margin: 12px 0 0;
+	margin: 10px 0 0;
 }
 
 .sw-kma__air-gases > div {
-	padding: 10px 12px;
-	border-radius: 10px;
+	padding: 12px 16px;
+	border-radius: 12px;
 	background: var(--kma-surface);
 }
 
 .sw-kma__air-gases dt {
-	color: var(--kma-muted);
-	font-size: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	color: var(--kma-ink);
+	font-size: 14px;
+	font-weight: 700;
 }
 
 .sw-kma__air-gases dd {
-	margin: 2px 0 0;
-	font-size: 12px;
+	margin: 4px 0 0;
+	font-size: 13px;
 }
 
 .sw-kma__air-gases dd b {
-	color: var(--kma-ink);
-	font-size: 15px;
+	color: var(--air);
+	font-size: 20px;
+	font-weight: 800;
+	letter-spacing: -.02em;
 }
 
 .sw-kma__air-fc {
@@ -884,9 +839,130 @@ html.dark .sw-kma__air-face {
 	color: var(--kma-ink);
 }
 
-.sw-kma__air-overall {
-	margin: 10px 0 0;
-	font-size: 13px;
+
+/* 생활 예보 — 옆으로 밀어서 보는 카드 */
+.sw-kma__life {
+	--life-5: #1c7ed6;
+	--life-4: #2b8a3e;
+	--life-3: #868e96;
+	--life-2: #e8590c;
+	--life-1: #e03131;
+}
+
+html.dark .sw-kma__life {
+	--life-5: #74c0fc;
+	--life-4: #69db7c;
+	--life-3: #adb5bd;
+	--life-2: #ffa94d;
+	--life-1: #ff8787;
+}
+
+.sw-kma__life .sw-kma__card-head .sw-kma__muted {
+	flex: 1;
+}
+
+.sw-kma__life-nav {
+	display: flex;
+	gap: 6px;
+}
+
+.sw-kma__life-nav button {
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border: 1px solid var(--kma-line);
+	border-radius: 50%;
+	background: var(--kma-bg);
+	color: var(--kma-ink);
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.sw-kma__life-nav button:disabled {
+	opacity: .35;
+	cursor: default;
+}
+
+.sw-kma__life-nav button:not(:disabled):hover {
+	border-color: var(--kma-accent);
+	color: var(--kma-accent);
+}
+
+.sw-kma__life-list {
+	display: flex;
+	gap: 10px;
+	margin: 0;
+	padding: 2px 0 8px;
+	overflow-x: auto;
+	list-style: none;
+	scroll-snap-type: x mandatory;
+	scroll-behavior: smooth;
+	scrollbar-width: thin;
+	-webkit-overflow-scrolling: touch;
+}
+
+.sw-kma__life-item {
+	--life: var(--life-3);
+	display: flex;
+	flex: 0 0 148px;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	margin: 0;
+	padding: 14px 14px 12px;
+	border-radius: 12px;
+	background: color-mix(in srgb, var(--life) 10%, var(--kma-surface));
+	scroll-snap-align: start;
+}
+
+.sw-kma__life-item.l5 { --life: var(--life-5); }
+.sw-kma__life-item.l4 { --life: var(--life-4); }
+.sw-kma__life-item.l3 { --life: var(--life-3); }
+.sw-kma__life-item.l2 { --life: var(--life-2); }
+.sw-kma__life-item.l1 { --life: var(--life-1); }
+
+.sw-kma__life-icon {
+	margin-bottom: 4px;
+	fill: none;
+	stroke: var(--life);
+	stroke-width: 1.6;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.sw-kma__life-item strong {
+	color: var(--kma-ink);
+	font-size: 14px;
+}
+
+.sw-kma__life-level {
+	color: var(--life);
+	font-size: 18px;
+	font-weight: 800;
+	letter-spacing: -.02em;
+}
+
+.sw-kma__life-dots {
+	display: flex;
+	gap: 3px;
+}
+
+.sw-kma__life-dots i {
+	width: 14px;
+	height: 4px;
+	border-radius: 2px;
+	background: color-mix(in srgb, var(--life) 20%, transparent);
+}
+
+.sw-kma__life-dots i.on {
+	background: var(--life);
+}
+
+.sw-kma__life-item small {
+	min-height: 1.5em;
+	color: var(--kma-muted);
+	font-size: 12px;
 }
 
 /* 반응형 */
@@ -909,12 +985,12 @@ html.dark .sw-kma__air-face {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
-	.sw-kma__air-grid {
+	.sw-kma__air-pm {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
-	.sw-kma__air-gases {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+	.sw-kma__life-nav {
+		display: none;
 	}
 }
 

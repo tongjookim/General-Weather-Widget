@@ -1,5 +1,5 @@
 /**
- * SW KMA 날씨 페이지 — 지점 선택 즉시 이동, 전국 표 정렬
+ * SW KMA 날씨 페이지 — 지점 선택 즉시 이동, 생활 예보 카드 넘기기, 전국 표 정렬
  */
 (function () {
 	'use strict';
@@ -12,6 +12,30 @@
 	});
 
 	// 그래프 가로 스크롤 시작 위치(최신 시각)는 CSS(direction: rtl)로 처리한다.
+
+	// 생활 예보 카드: 화살표 버튼으로 한 화면씩 넘기기 (터치는 기본 가로 스크롤)
+	document.querySelectorAll('.sw-kma__life').forEach(function (box) {
+		var list = box.querySelector('.sw-kma__life-list');
+		var btns = box.querySelectorAll('[data-life-scroll]');
+		if (!list) { return; }
+
+		function update() {
+			var max = list.scrollWidth - list.clientWidth - 2;
+			btns.forEach(function (b) {
+				var dir = parseInt(b.getAttribute('data-life-scroll'), 10);
+				b.disabled = dir < 0 ? list.scrollLeft <= 2 : list.scrollLeft >= max;
+			});
+		}
+		btns.forEach(function (b) {
+			b.addEventListener('click', function () {
+				var dir = parseInt(b.getAttribute('data-life-scroll'), 10);
+				list.scrollBy({ left: dir * Math.max(160, list.clientWidth * 0.8), behavior: 'smooth' });
+			});
+		});
+		list.addEventListener('scroll', update, { passive: true });
+		window.addEventListener('resize', update);
+		update();
+	});
 
 	// 표 정렬 (data-sort="num|text", 숫자는 td[data-v] 사용)
 	document.querySelectorAll('.sw-kma__table[data-sortable]').forEach(function (table) {

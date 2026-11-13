@@ -2,7 +2,7 @@
 /**
  * [sw_kma_weather] — 기상청 지상관측 날씨 페이지
  *
- * 구성: 현재 날씨 + 평년 비교, 최근 24시간 그래프, 대기질, 최근 7일, 해와 달, 전국 관측 현황
+ * 구성: 현재 날씨 + 평년 비교, 최근 24시간 그래프, 대기질, 생활 예보, 최근 7일, 해와 달, 전국 관측 현황
  * 지점 변경은 ?kma_stn=번호 (GET) 로 처리해 JS 없이도 동작한다.
  */
 
@@ -84,7 +84,8 @@ class SW_KMA_Page {
 
 		self::render_current( $stn, $hourly );
 		self::render_chart( $hourly );
-		self::render_air( $stn );
+		$air = self::render_air( $stn );
+		self::render_life( $hourly, $air );
 		self::render_daily( $stn );
 		self::render_astro( $stn );
 		self::render_nation( $stn );
@@ -373,10 +374,13 @@ class SW_KMA_Page {
 
 	/* ── 대기질 (에어코리아) ─────────────────────────────── */
 
+	/**
+	 * @return array|null 대기질 자료 (생활 예보에서 재사용)
+	 */
 	private static function render_air( $stn ) {
 		$region = SW_KMA_Data::air_region( $stn );
 		if ( ! $region ) {
-			return;
+			return null;
 		}
 		$coords = SW_KMA_API::station_coords();
 		$lat    = isset( $coords[ $stn ] ) ? $coords[ $stn ]['lat'] : null;
@@ -386,29 +390,17 @@ class SW_KMA_Page {
 			if ( current_user_can( 'manage_options' ) ) {
 				self::render_error( $air );
 			}
-			return;
+			return null;
 		}
 		$fc = SW_Air_API::forecast();
 
 		$grades = SW_Air_API::GRADES;
-		$main   = $air['khai_grade'] ? $air['khai_grade'] : SW_Air_API::grade( 'khai', $air['khai'] );
-		$pm10_g = SW_Air_API::grade( 'pm10', $air['pm10'] );
-		$pm25_g = SW_Air_API::grade( 'pm25', $air['pm25'] );
-		if ( ! $main ) {
-			$main = max( (int) $pm10_g, (int) $pm25_g ) ? max( (int) $pm10_g, (int) $pm25_g ) : null;
-		}
-		$time = strlen( $air['time'] ) >= 16 ? substr( $air['time'], 11, 5 ) : $air['time'];
+		$time   = strlen( $air['time'] ) >= 16 ? substr( $air['time'], 11, 5 ) : $air['time'];
 		if ( 'nearest' === $air['mode'] ) {
 			$basis = sprintf( '%s 측정소(관측지점에서 %.1fkm) · %s 기준', $air['label'], $air['dist'], $time );
 		} else {
 			$basis = sprintf( '%s 도시대기 측정소 %d곳 평균 · %s 기준', $air['label'], $air['count'], $time );
 		}
-		$tips = array(
-			1 => '대기 상태가 좋습니다. 야외 활동하기 좋아요.',
-			2 => '보통 수준입니다. 민감군은 장시간 무리한 실외 활동을 줄이세요.',
-			3 => '공기가 나쁩니다. 장시간 실외 활동을 줄이고 외출 시 마스크를 쓰세요.',
-			4 => '공기가 매우 나쁩니다. 실외 활동을 피하고 창문을 닫아 두세요.',
-		);
 
 		// 오염물질 막대 위치: 등급 구간(4칸) 안에서의 상대 위치
 		$gauge = function ( $item, $v ) {
@@ -435,39 +427,31 @@ class SW_KMA_Page {
 				<span class="sw-kma__muted"><?php echo esc_html( $basis ); ?></span>
 			</div>
 
-			<div class="sw-kma__air-grid">
-				<div class="sw-kma__air-summary g<?php echo esc_attr( (int) $main ); ?>">
-					<span class="sw-kma__air-face" aria-hidden="true"><?php echo esc_html( $main ? $grades[ $main ] : '-' ); ?></span>
-					<div>
-						<p class="sw-kma__air-label">통합대기환경지수 <b><?php echo esc_html( null === $air['khai'] ? '-' : number_format( $air['khai'] ) ); ?></b></p>
-						<p class="sw-kma__air-tip"><?php echo esc_html( $main ? $tips[ $main ] : '측정값이 없습니다.' ); ?></p>
-					</div>
-				</div>
-
-				<div class="sw-kma__air-pm">
-					<?php foreach ( array( 'pm10' => $pm10_g, 'pm25' => $pm25_g ) as $k => $g ) : ?>
-						<?php $pos = $gauge( $k, $air[ $k ] ); ?>
-						<div class="sw-kma__air-pmrow g<?php echo esc_attr( (int) $g ); ?>">
-							<div class="sw-kma__air-pmhead">
-								<span><?php echo esc_html( SW_Air_API::ITEMS[ $k ][0] ); ?> <small><?php echo 'pm10' === $k ? 'PM10' : 'PM2.5'; ?></small></span>
-								<span class="sw-kma__air-badge"><?php echo esc_html( $g ? $grades[ $g ] : '-' ); ?></span>
-							</div>
-							<p class="sw-kma__air-value"><b><?php echo esc_html( $val( $k, $air[ $k ] ) ); ?></b> ㎍/㎥
-								<?php if ( null !== $air[ $k . '_24' ] ) : ?><span class="sw-kma__muted">· 24시간 평균 <?php echo esc_html( $val( $k, $air[ $k . '_24' ] ) ); ?></span><?php endif; ?>
-							</p>
-							<div class="sw-kma__air-gauge" aria-hidden="true"><i></i><i></i><i></i><i></i><?php if ( null !== $pos ) : ?><b style="left:<?php echo esc_attr( round( $pos, 1 ) ); ?>%"></b><?php endif; ?></div>
+			<div class="sw-kma__air-pm">
+				<?php foreach ( array( 'pm10', 'pm25' ) as $k ) : ?>
+					<?php
+					$g   = SW_Air_API::grade( $k, $air[ $k ] );
+					$pos = $gauge( $k, $air[ $k ] );
+					?>
+					<div class="sw-kma__air-pmrow g<?php echo esc_attr( (int) $g ); ?>">
+						<div class="sw-kma__air-pmhead">
+							<span><?php echo esc_html( SW_Air_API::ITEMS[ $k ][0] ); ?> <small><?php echo 'pm10' === $k ? 'PM10' : 'PM2.5'; ?></small></span>
+							<span class="sw-kma__air-badge"><?php echo esc_html( $g ? $grades[ $g ] : '-' ); ?></span>
 						</div>
-					<?php endforeach; ?>
-				</div>
+						<p class="sw-kma__air-value"><b><?php echo esc_html( $val( $k, $air[ $k ] ) ); ?></b> ㎍/㎥
+							<?php if ( null !== $air[ $k . '_24' ] ) : ?><span class="sw-kma__muted">· 24시간 평균 <?php echo esc_html( $val( $k, $air[ $k . '_24' ] ) ); ?></span><?php endif; ?>
+						</p>
+						<div class="sw-kma__air-gauge" aria-hidden="true"><i></i><i></i><i></i><i></i><?php if ( null !== $pos ) : ?><b style="left:<?php echo esc_attr( round( $pos, 1 ) ); ?>%"></b><?php endif; ?></div>
+					</div>
+				<?php endforeach; ?>
 			</div>
 
 			<dl class="sw-kma__air-gases">
 				<?php foreach ( array( 'o3', 'no2', 'co', 'so2' ) as $k ) : ?>
 					<?php $g = SW_Air_API::grade( $k, $air[ $k ] ); ?>
 					<div class="g<?php echo esc_attr( (int) $g ); ?>">
-						<dt><?php echo esc_html( SW_Air_API::ITEMS[ $k ][0] ); ?></dt>
+						<dt><?php echo esc_html( SW_Air_API::ITEMS[ $k ][0] ); ?> <span class="sw-kma__air-badge"><?php echo esc_html( $g ? $grades[ $g ] : '-' ); ?></span></dt>
 						<dd><b><?php echo esc_html( $val( $k, $air[ $k ] ) ); ?></b> <?php echo esc_html( SW_Air_API::ITEMS[ $k ][1] ); ?></dd>
-						<dd class="sw-kma__air-badge"><?php echo esc_html( $g ? $grades[ $g ] : '-' ); ?></dd>
 					</div>
 				<?php endforeach; ?>
 			</dl>
@@ -476,7 +460,6 @@ class SW_KMA_Page {
 				<?php
 				$labels = array( '오늘', '내일', '모레' );
 				$today  = new DateTimeImmutable( 'today', wp_timezone() );
-				$first  = reset( $fc['days'] );
 				?>
 				<div class="sw-kma__air-fc">
 					<h4>예보 <span class="sw-kma__muted"><?php echo esc_html( $region['forecast'] . ' 권역 · ' . preg_replace( '/^\d{4}-(\d{2})-(\d{2})\s*/', '$1.$2 ', $fc['issued'] ) ); ?></span></h4>
@@ -500,18 +483,103 @@ class SW_KMA_Page {
 							</div>
 						<?php endforeach; ?>
 					</div>
-					<?php if ( ! empty( $first['overall'] ) ) : ?>
-						<p class="sw-kma__air-overall"><?php echo esc_html( $first['overall'] ); ?></p>
-					<?php endif; ?>
 				</div>
 			<?php elseif ( is_wp_error( $fc ) && current_user_can( 'manage_options' ) ) : ?>
 				<?php self::render_error( $fc ); ?>
 			<?php endif; ?>
+		</section>
+		<?php
+		return $air;
+	}
 
-			<p class="sw-kma__astro-foot">자료: 환경부·한국환경공단 에어코리아. 실시간 측정값은 인증을 받지 않은 자료로, 측정소 현지 사정이나 수신 상태에 따라 오류가 있거나 빠질 수 있습니다.</p>
-			<?php if ( 'sido' === $air['mode'] && current_user_can( 'manage_options' ) ) : ?>
-				<p class="sw-kma__astro-foot">관리자 안내: 공공데이터포털에서 <b>한국환경공단_에어코리아_측정소정보</b>를 활용신청하면 시도 평균 대신 관측지점에서 가장 가까운 측정소 값으로 표시됩니다.</p>
-			<?php endif; ?>
+	/* ── 생활 예보 ─────────────────────────────────────── */
+
+	/**
+	 * 활동별 쾌적 기온 범위 [이름, 최저, 최고, 격한 운동 여부, 아이콘 path]
+	 */
+	private static function activities() {
+		return array(
+			'run'    => array( '달리기', 8, 18, true, '<circle cx="15" cy="4.5" r="2"/><path d="M13 8l-3 5h4l2 3v4M10 13l-4 1M13 8l3 3h3M11 16l-3 5"/>' ),
+			'bike'   => array( '자전거 타기', 12, 24, true, '<circle cx="6" cy="17" r="4"/><circle cx="18" cy="17" r="4"/><path d="M6 17l4-8h6l2 8M10 9l4 8M8 6h3"/>' ),
+			'hike'   => array( '하이킹하기', 10, 22, true, '<path d="M2 20l7-11 4 6 3-4 6 9z"/><path d="M7.5 11.5l1.5 1 1.5-1"/>' ),
+			'garden' => array( '정원 가꾸기', 12, 25, false, '<path d="M12 20v-8M12 12c0-4-3-6-7-6 0 4 3 6 7 6zM12 14c0-3 2-5 6-5 0 3-2 5-6 5zM6 20h12"/>' ),
+			'tennis' => array( '테니스 치기', 12, 25, true, '<circle cx="12" cy="12" r="8.5"/><path d="M5 6.5c3.5 2.5 3.5 8.5 0 11M19 6.5c-3.5 2.5-3.5 8.5 0 11"/>' ),
+			'golf'   => array( '골프', 15, 25, false, '<path d="M9 20V3l8 3.5L9 10"/><ellipse cx="9" cy="20" rx="6" ry="1.5"/>' ),
+			'camp'   => array( '캠핑하기', 15, 25, false, '<path d="M3 20h18M12 5L4 20M12 5l8 15M12 13l-3 7M12 13l3 7"/>' ),
+		);
+	}
+
+	/**
+	 * 생활 예보: 현재 시간대 평균 기온과 미세먼지·초미세먼지로 활동별 지수(1~5) 계산
+	 */
+	private static function render_life( array $hourly, $air ) {
+		// 현재 시간대 평균 기온: 최근 3시간 관측값 평균
+		$temps = array();
+		for ( $i = count( $hourly ) - 1; $i >= 0 && count( $temps ) < 3; $i-- ) {
+			if ( null !== $hourly[ $i ]['TA'] ) {
+				$temps[] = $hourly[ $i ]['TA'];
+				$last    = $last ?? $hourly[ $i ]['TM'];
+			}
+		}
+		if ( ! $temps ) {
+			return;
+		}
+		$ta   = array_sum( $temps ) / count( $temps );
+		$hour = (int) substr( $last, 8, 2 );
+
+		$pm10 = $air ? SW_Air_API::grade( 'pm10', $air['pm10'] ) : null;
+		$pm25 = $air ? SW_Air_API::grade( 'pm25', $air['pm25'] ) : null;
+		$dust = max( (int) $pm10, (int) $pm25 ); // 0 이면 대기질 자료 없음
+
+		$levels = array( 5 => '아주 좋음', 4 => '좋음', 3 => '보통', 2 => '나쁨', 1 => '아주 나쁨' );
+		$grades = SW_Air_API::GRADES;
+		?>
+		<section class="sw-kma__card sw-kma__life" aria-labelledby="sw-kma-life-title">
+			<div class="sw-kma__card-head">
+				<h3 id="sw-kma-life-title">생활 예보</h3>
+				<span class="sw-kma__muted">
+					<?php
+					echo esc_html( sprintf( '%d시 기준 · 평균 기온 %.1f℃', $hour, $ta ) );
+					if ( $pm10 ) {
+						echo esc_html( ' · 미세먼지 ' . $grades[ $pm10 ] );
+					}
+					if ( $pm25 ) {
+						echo esc_html( ' · 초미세먼지 ' . $grades[ $pm25 ] );
+					}
+					?>
+				</span>
+				<span class="sw-kma__life-nav">
+					<button type="button" data-life-scroll="-1" aria-label="이전 활동">‹</button>
+					<button type="button" data-life-scroll="1" aria-label="다음 활동">›</button>
+				</span>
+			</div>
+			<ul class="sw-kma__life-list" tabindex="0" aria-label="활동별 생활 예보 (옆으로 밀어서 보기)">
+				<?php foreach ( self::activities() as $key => $a ) : ?>
+					<?php
+					list( $name, $lo, $hi, $hard, $icon ) = $a;
+
+					// 기온 점수: 쾌적 범위에서 벗어난 정도
+					$off    = $ta < $lo ? $lo - $ta : ( $ta > $hi ? $ta - $hi : 0 );
+					$t_lvl  = $off <= 0 ? 5 : ( $off <= 3 ? 4 : ( $off <= 6 ? 3 : ( $off <= 10 ? 2 : 1 ) ) );
+					$t_note = $off <= 0 ? '' : ( $ta < $lo ? ( $off > 6 ? '추워요' : '쌀쌀해요' ) : ( $off > 6 ? '너무 더워요' : '더워요' ) );
+
+					// 먼지 점수: 격한 운동일수록 엄격하게
+					$d_map  = $hard ? array( 0 => 5, 1 => 5, 2 => 4, 3 => 2, 4 => 1 ) : array( 0 => 5, 1 => 5, 2 => 4, 3 => 3, 4 => 1 );
+					$d_lvl  = $d_map[ $dust ];
+					$d_note = $dust >= 2 ? ( $pm25 >= $pm10 ? '초미세먼지 ' : '미세먼지 ' ) . $grades[ max( $pm10, $pm25 ) ] : '';
+
+					$lvl  = min( $t_lvl, $d_lvl );
+					$note = 5 === $lvl ? '활동하기 딱 좋아요' : implode( ' · ', array_filter( array( $t_lvl < 5 ? $t_note : '', $d_lvl < 5 ? $d_note : '' ) ) );
+					?>
+					<li class="sw-kma__life-item l<?php echo esc_attr( $lvl ); ?>">
+						<svg class="sw-kma__life-icon" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><?php echo $icon; // phpcs:ignore WordPress.Security.EscapeOutput ?></svg>
+						<strong><?php echo esc_html( $name ); ?></strong>
+						<span class="sw-kma__life-level"><?php echo esc_html( $levels[ $lvl ] ); ?></span>
+						<span class="sw-kma__life-dots" aria-hidden="true"><?php echo str_repeat( '<i class="on"></i>', $lvl ) . str_repeat( '<i></i>', 5 - $lvl ); // phpcs:ignore WordPress.Security.EscapeOutput ?></span>
+						<small><?php echo esc_html( $note ); ?></small>
+					</li>
+				<?php endforeach; ?>
+			</ul>
 		</section>
 		<?php
 	}
